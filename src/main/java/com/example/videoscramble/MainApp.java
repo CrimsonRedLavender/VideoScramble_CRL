@@ -41,6 +41,16 @@ public class MainApp extends Application {
      * @param args arguments transmis par la ligne de commande
      */
     public static void main(String[] args) {
+        try {
+            int exitCode = CommandLineRunner.run(args);
+            if (exitCode >= 0) {
+                System.exit(exitCode);
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur : " + e.getMessage());
+            CommandLineRunner.printUsage();
+            System.exit(1);
+        }
         launch(args);
     }
 }

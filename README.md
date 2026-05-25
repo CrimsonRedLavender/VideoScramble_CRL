@@ -17,6 +17,8 @@ Projet Java 17 conforme au cahier des charges :
 - `VideoProcessor.java` : lecture/écriture vidéo OpenCV
 - `LineScrambler.java` : permutation des lignes par blocs de puissances de 2
 - `ImageCracker.java` : brute force d'une image
+- `CommandLineRunner.java` : mode ligne de commande
+- `KeyIO.java` : lecture/écriture d'une clé dans un fichier texte
 
 ## Prérequis
 - JDK 17
@@ -25,6 +27,35 @@ Projet Java 17 conforme au cahier des charges :
 ## Lancer le projet
 ```bash
 mvn clean javafx:run
+```
+
+## Mode ligne de commande
+Le programme peut aussi traiter une vidéo sans ouvrir l'interface graphique.
+
+Chiffrer avec une clé saisie directement :
+```bash
+mvn javafx:run -Djavafx.args="encrypt entree.mp4 sortie.mp4 37 12"
+```
+
+Déchiffrer avec une clé saisie directement :
+```bash
+mvn javafx:run -Djavafx.args="decrypt entree.mp4 sortie.mp4 37 12"
+```
+
+Utiliser une clé stockée dans un fichier texte :
+```bash
+mvn javafx:run -Djavafx.args="encrypt entree.mp4 sortie.mp4 --key-file cle.txt"
+mvn javafx:run -Djavafx.args="decrypt entree.mp4 sortie.mp4 --key-file cle.txt"
+```
+
+Valider l'algorithme sur une image avec un aller-retour chiffrement puis déchiffrement :
+```bash
+mvn javafx:run -Djavafx.args="validate-image image.png 37 12"
+```
+
+Le fichier de clé contient simplement deux entiers :
+```text
+37 12
 ```
 
 ## Démonstration conseillée en soutenance

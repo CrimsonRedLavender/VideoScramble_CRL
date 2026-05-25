@@ -170,9 +170,32 @@ public class MainController {
             return;
         }
         try {
-            Files.writeString(file.toPath(), key.offset() + " " + key.step());
+            KeyIO.write(file.toPath(), key);
             status("Clé enregistrée : " + file.getAbsolutePath());
         } catch (IOException e) {
+            status("Erreur : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Charge une cle depuis un fichier texte et remplit les champs de l'IHM.
+     */
+    @FXML
+    private void loadKeyFromText() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Charger la clé");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Texte", "*.txt"));
+        java.io.File file = chooser.showOpenDialog(window());
+        if (file == null) {
+            return;
+        }
+        try {
+            ScrambleKey key = KeyIO.read(file.toPath());
+            offsetField.setText(Integer.toString(key.offset()));
+            stepField.setText(Integer.toString(key.step()));
+            updateKeyLabel();
+            status("Clé chargée : " + file.getAbsolutePath());
+        } catch (IOException | IllegalArgumentException e) {
             status("Erreur : " + e.getMessage());
         }
     }
