@@ -48,6 +48,8 @@
                 <Button text="Enregistrer la clé" onAction="#saveKeyToText"/>
                 <Button text="Charger la clé" onAction="#loadKeyFromText"/>
                 <CheckBox fx:id="showPreviewCheckBox" text="Afficher l'aperçu"/>
+                <CheckBox fx:id="embedKeyCheckBox" text="Embarquer clé"/>
+                <CheckBox fx:id="readEmbeddedKeyCheckBox" text="Lire clé embarquée"/>
                 <Label text="Score"/>
                 <ComboBox fx:id="scoreCombo" prefWidth="140"/>
             </HBox>

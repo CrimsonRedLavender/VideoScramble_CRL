@@ -39,6 +39,8 @@ public class MainController {
     @FXML private ImageView sourceView;
     @FXML private ImageView resultView;
     @FXML private CheckBox showPreviewCheckBox;
+    @FXML private CheckBox embedKeyCheckBox;
+    @FXML private CheckBox readEmbeddedKeyCheckBox;
     @FXML private Button encryptButton;
     @FXML private Button decryptButton;
     @FXML private Button crackImageButton;
@@ -53,6 +55,8 @@ public class MainController {
         offsetField.setText("37");
         stepField.setText("12");
         showPreviewCheckBox.setSelected(true);
+        embedKeyCheckBox.setSelected(false);
+        readEmbeddedKeyCheckBox.setSelected(false);
         status("Prêt.");
         updateKeyLabel();
     }
@@ -91,6 +95,7 @@ public class MainController {
         chooser.setTitle("Choisir le fichier de sortie");
         chooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("MP4", "*.mp4"),
+                new FileChooser.ExtensionFilter("AVI sans perte", "*.avi"),
                 new FileChooser.ExtensionFilter("PNG", "*.png"),
                 new FileChooser.ExtensionFilter("Tous les fichiers", "*.*")
         );
@@ -219,7 +224,7 @@ public class MainController {
     private void launchVideoTask(Mode mode) {
         Path input = requiredPath(inputField.getText(), "Choisis la vidéo d'entrée.");
         Path output = requiredPath(outputField.getText(), "Choisis la vidéo de sortie.");
-        ScrambleKey key = readKey();
+        ScrambleKey key = readEmbeddedKeyCheckBox.isSelected() && mode == Mode.DECRYPT ? new ScrambleKey(0, 0) : readKey();
         disableActions(true);
 
         Task<Void> task = new Task<>() {
@@ -229,7 +234,10 @@ public class MainController {
                 List<Integer> blocks = VideoProcessor.probeBlocks(input);
                 Platform.runLater(() -> blocksLabel.setText("Blocs : " + blocks));
 
-                VideoProcessor.processVideo(input, output, mode, key, showPreviewCheckBox.isSelected() ? (source, result) -> {
+                VideoProcessor.processVideo(input, output, mode, key,
+                        embedKeyCheckBox.isSelected() && mode == Mode.ENCRYPT,
+                        readEmbeddedKeyCheckBox.isSelected() && mode == Mode.DECRYPT,
+                        showPreviewCheckBox.isSelected() ? (source, result) -> {
                     Mat sourceCopy = source.clone();
                     Mat resultCopy = result.clone();
 
@@ -252,7 +260,8 @@ public class MainController {
 
                     source.release();
                     result.release();
-                } : null);
+                } : null,
+                        usedKey -> Platform.runLater(() -> keyLabel.setText("Clé utilisée : " + usedKey)));
 
                 updateMessage((mode == Mode.ENCRYPT ? "Chiffrement" : "Déchiffrement") + " terminé.");
                 return null;

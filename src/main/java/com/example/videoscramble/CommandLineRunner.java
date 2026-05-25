@@ -57,6 +57,8 @@ public final class CommandLineRunner {
         System.out.println("  java ... MainApp gui");
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> <r> <s>");
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> <r> <s>");
+        System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> <r> <s> --embed-key");
+        System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --embedded-key");
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> --key-file <fichier>");
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --key-file <fichier>");
         System.out.println("  java ... MainApp crack <image-ou-video> [sortie-image] [PEARSON|EUCLIDEAN]");
@@ -68,6 +70,21 @@ public final class CommandLineRunner {
      * Lance le chiffrement ou le dechiffrement d'une video.
      */
     private static int processVideo(String[] args, Mode mode) throws Exception {
+        if (mode == Mode.DECRYPT && hasFlag(args, "--embedded-key")) {
+            Path input = Path.of(args[1]);
+            Path output = Path.of(args[2]);
+            ScrambleKey[] lastPrintedKey = new ScrambleKey[1];
+            VideoProcessor.processVideo(input, output, mode, new ScrambleKey(0, 0), false, true, null,
+                    usedKey -> {
+                        if (!usedKey.equals(lastPrintedKey[0])) {
+                            System.out.println("Cle lue : " + usedKey);
+                            lastPrintedKey[0] = usedKey;
+                        }
+                    });
+            System.out.println("Dechiffrement termine : " + output);
+            return 0;
+        }
+
         if (args.length < 5) {
             printUsage();
             return 2;
@@ -76,10 +93,14 @@ public final class CommandLineRunner {
         Path input = Path.of(args[1]);
         Path output = Path.of(args[2]);
         ScrambleKey key = readKeyArgument(args, 3);
+        boolean embedKey = mode == Mode.ENCRYPT && hasFlag(args, "--embed-key");
 
-        VideoProcessor.processVideo(input, output, mode, key, null);
+        VideoProcessor.processVideo(input, output, mode, key, embedKey, false, null, null);
         System.out.println((mode == Mode.ENCRYPT ? "Chiffrement" : "Dechiffrement") + " termine : " + output);
         System.out.println("Cle utilisee : " + key);
+        if (embedKey) {
+            System.out.println("Cle embarquee dans chaque image.");
+        }
         return 0;
     }
 
@@ -205,5 +226,17 @@ public final class CommandLineRunner {
     private static boolean isVideoFile(Path path) {
         String name = path.getFileName().toString().toLowerCase();
         return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov") || name.endsWith(".mkv");
+    }
+
+    /**
+     * Indique si un drapeau est present dans les arguments.
+     */
+    private static boolean hasFlag(String[] args, String flag) {
+        for (String arg : args) {
+            if (flag.equalsIgnoreCase(arg)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

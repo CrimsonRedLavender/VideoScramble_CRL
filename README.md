@@ -48,6 +48,12 @@ mvn javafx:run -Djavafx.args="encrypt entree.mp4 sortie.mp4 --key-file cle.txt"
 mvn javafx:run -Djavafx.args="decrypt entree.mp4 sortie.mp4 --key-file cle.txt"
 ```
 
+Embarquer la clé dans chaque image chiffrée, puis la relire au déchiffrement :
+```bash
+mvn javafx:run -Djavafx.args="encrypt entree.mp4 sortie.mp4 37 12 --embed-key"
+mvn javafx:run -Djavafx.args="decrypt sortie.mp4 video_dechiffree.mp4 --embedded-key"
+```
+
 Casser une clé depuis une image ou une vidéo chiffrée :
 ```bash
 mvn javafx:run -Djavafx.args="crack video_chiffree.mp4 image_dechiffree.png PEARSON"
@@ -78,3 +84,5 @@ Le fichier de clé contient simplement deux entiers :
 - La permutation s'applique par blocs successifs de tailles puissances de 2.
 - L'audio est volontairement ignoré.
 - Le fichier de sortie est créé automatiquement si son dossier parent existe ou peut être créé.
+- La clé embarquée est encodée dans des blocs clairs/sombres en haut à gauche de l'image. C'est une variante robuste de l'idée du sujet, choisie pour résister au codec `mp4v` disponible sur la machine de démonstration.
+- Le code tente aussi d'utiliser FFV1 pour les sorties `.mkv` si le backend OpenCV/FFmpeg local le supporte.

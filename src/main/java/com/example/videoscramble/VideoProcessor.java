@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Orchestre le traitement video image par image avec OpenCV.
@@ -110,6 +111,30 @@ public final class VideoProcessor {
                                     Mode mode,
                                     ScrambleKey key,
                                     BiConsumer<Mat, Mat> onFrame) throws IOException {
+        processVideo(input, output, mode, key, false, false, onFrame, null);
+    }
+
+    /**
+     * Traite une video complete avec option d'embarquement ou de lecture de cle.
+     *
+     * @param input chemin de la video source
+     * @param output chemin de la video de sortie
+     * @param mode type de traitement a appliquer
+     * @param key cle par defaut, utilisee si aucune cle embarquee n'est lue
+     * @param embedKey true pour ecrire la cle dans chaque image chiffree
+     * @param readEmbeddedKey true pour lire la cle depuis chaque image avant dechiffrement
+     * @param onFrame callback optionnel utilise par l'IHM pour afficher l'apercu
+     * @param onKey callback optionnel appele quand une cle est utilisee
+     * @throws IOException si le dossier de sortie ne peut pas etre cree
+     */
+    public static void processVideo(Path input,
+                                    Path output,
+                                    Mode mode,
+                                    ScrambleKey key,
+                                    boolean embedKey,
+                                    boolean readEmbeddedKey,
+                                    BiConsumer<Mat, Mat> onFrame,
+                                    Consumer<ScrambleKey> onKey) throws IOException {
         ensureReadableFile(input);
         ensureParentDirectory(output);
 
@@ -127,7 +152,7 @@ public final class VideoProcessor {
 
         VideoWriter writer = new VideoWriter(
                 output.toString(),
-                VideoWriter.fourcc('m', 'p', '4', 'v'),
+                fourccFor(output),
                 fps,
                 new Size(width, height)
         );
@@ -143,12 +168,21 @@ public final class VideoProcessor {
                 if (frame.empty()) {
                     continue;
                 }
+                ScrambleKey frameKey = mode == Mode.DECRYPT && readEmbeddedKey ? KeyEmbedder.extract(frame) : key;
+                if (onKey != null) {
+                    onKey.accept(frameKey);
+                }
+
                 Mat processed = mode == Mode.ENCRYPT
-                        ? LineScrambler.scramble(frame, key)
-                        : LineScrambler.unscramble(frame, key);
+                        ? LineScrambler.scramble(frame, frameKey)
+                        : LineScrambler.unscramble(frame, frameKey);
 
                 if (processed == null || processed.empty()) {
                     continue;
+                }
+
+                if (mode == Mode.ENCRYPT && embedKey) {
+                    KeyEmbedder.embed(processed, frameKey);
                 }
 
                 if (onFrame != null) {
@@ -185,6 +219,20 @@ public final class VideoProcessor {
         if (parent != null && !Files.exists(parent)) {
             Files.createDirectories(parent);
         }
+    }
+
+    /**
+     * Choisit un codec adapte au fichier de sortie.
+     */
+    private static int fourccFor(Path output) {
+        String name = output.getFileName().toString().toLowerCase();
+        if (name.endsWith(".mkv")) {
+            return VideoWriter.fourcc('F', 'F', 'V', '1');
+        }
+        if (name.endsWith(".avi")) {
+            return VideoWriter.fourcc('M', 'J', 'P', 'G');
+        }
+        return VideoWriter.fourcc('m', 'p', '4', 'v');
     }
 
     /**
