@@ -35,6 +35,7 @@ public final class CommandLineRunner {
         return switch (command) {
             case "encrypt" -> processVideo(args, Mode.ENCRYPT);
             case "decrypt" -> processVideo(args, Mode.DECRYPT);
+            case "crack" -> crack(args);
             case "validate-image" -> validateImage(args);
             case "help", "--help", "-h" -> {
                 printUsage();
@@ -58,6 +59,7 @@ public final class CommandLineRunner {
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> <r> <s>");
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> --key-file <fichier>");
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --key-file <fichier>");
+        System.out.println("  java ... MainApp crack <image-ou-video> [sortie-image] [PEARSON|EUCLIDEAN]");
         System.out.println("  java ... MainApp validate-image <image> <r> <s>");
         System.out.println("  java ... MainApp validate-image <image> --key-file <fichier>");
     }
@@ -79,6 +81,45 @@ public final class CommandLineRunner {
         System.out.println((mode == Mode.ENCRYPT ? "Chiffrement" : "Dechiffrement") + " termine : " + output);
         System.out.println("Cle utilisee : " + key);
         return 0;
+    }
+
+    /**
+     * Cherche la cle d'une image ou d'une video chiffree.
+     */
+    private static int crack(String[] args) {
+        if (args.length < 2) {
+            printUsage();
+            return 2;
+        }
+
+        Path input = Path.of(args[1]);
+        Path output = args.length >= 3 && !isScoreMethod(args[2]) ? Path.of(args[2]) : null;
+        String methodArgument = output == null && args.length >= 3 ? args[2] : args.length >= 4 ? args[3] : ScoreMethod.PEARSON.name();
+        ScoreMethod method = ScoreMethod.valueOf(methodArgument.toUpperCase());
+
+        Mat scrambled = readCrackFrame(input);
+        try {
+            long start = System.nanoTime();
+            ImageCracker.CrackResult result = ImageCracker.crack(scrambled, method);
+            long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
+
+            try {
+                if (output != null) {
+                    Imgcodecs.imwrite(output.toString(), result.image());
+                }
+                System.out.println("Cle trouvee : " + result.key());
+                System.out.println("Score : " + result.score());
+                System.out.println("Temps : " + elapsedMillis + " ms");
+                if (output != null) {
+                    System.out.println("Image decryptee : " + output);
+                }
+            } finally {
+                result.image().release();
+            }
+            return 0;
+        } finally {
+            scrambled.release();
+        }
     }
 
     /**
@@ -129,5 +170,40 @@ public final class CommandLineRunner {
             throw new IllegalArgumentException("Cle incomplete : r et s sont requis.");
         }
         return new ScrambleKey(Integer.parseInt(args[index]), Integer.parseInt(args[index + 1]));
+    }
+
+    /**
+     * Lit directement une image ou extrait une frame exploitable depuis une video.
+     */
+    private static Mat readCrackFrame(Path input) {
+        if (isVideoFile(input)) {
+            return VideoProcessor.extractRepresentativeFrame(input);
+        }
+
+        Mat image = Imgcodecs.imread(input.toString());
+        if (image.empty()) {
+            throw new IllegalArgumentException("Impossible de lire l'image : " + input);
+        }
+        return image;
+    }
+
+    /**
+     * Determine si un argument correspond a une methode de score.
+     */
+    private static boolean isScoreMethod(String value) {
+        for (ScoreMethod method : ScoreMethod.values()) {
+            if (method.name().equalsIgnoreCase(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Determine si le fichier semble etre une video selon son extension.
+     */
+    private static boolean isVideoFile(Path path) {
+        String name = path.getFileName().toString().toLowerCase();
+        return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov") || name.endsWith(".mkv");
     }
 }

@@ -4,7 +4,7 @@ Projet Java 17 conforme au cahier des charges :
 - JavaFX pour l'interface
 - OpenCV pour la lecture/écriture et le traitement vidéo
 - chiffrement/déchiffrement par permutation de lignes
-- cassure de clé sur image par force brute avec score Pearson ou Euclidien
+- cassure de clé sur image ou vidéo par force brute avec score Pearson ou Euclidien
 
 ## Bibliothèques utilisées
 - JavaFX
@@ -48,6 +48,11 @@ mvn javafx:run -Djavafx.args="encrypt entree.mp4 sortie.mp4 --key-file cle.txt"
 mvn javafx:run -Djavafx.args="decrypt entree.mp4 sortie.mp4 --key-file cle.txt"
 ```
 
+Casser une clé depuis une image ou une vidéo chiffrée :
+```bash
+mvn javafx:run -Djavafx.args="crack video_chiffree.mp4 image_dechiffree.png PEARSON"
+```
+
 Valider l'algorithme sur une image avec un aller-retour chiffrement puis déchiffrement :
 ```bash
 mvn javafx:run -Djavafx.args="validate-image image.png 37 12"
@@ -67,7 +72,7 @@ Le fichier de clé contient simplement deux entiers :
 6. Reprendre la même clé
 7. Cliquer sur **Déchiffrer la vidéo**
 8. Montrer que l'image d'origine est retrouvée
-9. Charger une image chiffrée et utiliser **Casser une image**
+9. Charger une image ou une vidéo chiffrée et utiliser **Casser une image**
 
 ## Remarques techniques
 - La permutation s'applique par blocs successifs de tailles puissances de 2.

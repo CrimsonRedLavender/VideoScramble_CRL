@@ -7,7 +7,9 @@
 package com.example.videoscramble;
 
 import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 import org.opencv.videoio.VideoWriter;
 import org.opencv.videoio.Videoio;
@@ -22,6 +24,8 @@ import java.util.function.BiConsumer;
  * Orchestre le traitement video image par image avec OpenCV.
  */
 public final class VideoProcessor {
+    private static final double MIN_FRAME_BRIGHTNESS = 3.0;
+
     private VideoProcessor() {
     }
 
@@ -43,6 +47,52 @@ public final class VideoProcessor {
         } finally {
             capture.release();
         }
+    }
+
+    /**
+     * Extrait une image utilisable pour casser la cle depuis une video.
+     *
+     * <p>Les premieres images d'une video sont parfois noires. Cette methode
+     * parcourt donc le debut de la video et conserve la premiere frame dont la
+     * luminosite moyenne depasse un seuil minimal.</p>
+     *
+     * @param input chemin de la video a analyser
+     * @return frame non noire, ou premiere frame lue si toute la video est sombre
+     */
+    public static Mat extractRepresentativeFrame(Path input) {
+        ensureReadableFile(input);
+        VideoCapture capture = new VideoCapture(input.toString());
+        if (!capture.isOpened()) {
+            throw new IllegalArgumentException("Impossible d'ouvrir la vidéo : " + input);
+        }
+
+        Mat frame = new Mat();
+        Mat fallback = null;
+        try {
+            while (capture.read(frame)) {
+                if (frame.empty()) {
+                    continue;
+                }
+                if (fallback == null) {
+                    fallback = frame.clone();
+                }
+                if (meanBrightness(frame) >= MIN_FRAME_BRIGHTNESS) {
+                    Mat selected = frame.clone();
+                    if (fallback != null) {
+                        fallback.release();
+                    }
+                    return selected;
+                }
+            }
+        } finally {
+            frame.release();
+            capture.release();
+        }
+
+        if (fallback != null) {
+            return fallback;
+        }
+        throw new IllegalArgumentException("Aucune image lisible dans la vidéo : " + input);
     }
 
     /**
@@ -134,6 +184,26 @@ public final class VideoProcessor {
         Path parent = output.toAbsolutePath().getParent();
         if (parent != null && !Files.exists(parent)) {
             Files.createDirectories(parent);
+        }
+    }
+
+    /**
+     * Calcule la luminosite moyenne d'une image pour eviter les frames noires.
+     */
+    private static double meanBrightness(Mat frame) {
+        Mat gray = new Mat();
+        try {
+            if (frame.channels() == 1) {
+                gray = frame;
+            } else {
+                Imgproc.cvtColor(frame, gray, Imgproc.COLOR_BGR2GRAY);
+            }
+            Scalar mean = org.opencv.core.Core.mean(gray);
+            return mean.val[0];
+        } finally {
+            if (gray != frame) {
+                gray.release();
+            }
         }
     }
 }

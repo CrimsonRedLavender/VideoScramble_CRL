@@ -117,30 +117,31 @@ public class MainController {
     }
 
     /**
-     * Cherche la cle d'une image chiffree par force brute.
+     * Cherche la cle d'une image ou d'une video chiffree par force brute.
      */
     @FXML
     private void crackImage() {
-        Path input = requiredPath(inputField.getText(), "Choisis l'image chiffrée.");
+        Path input = requiredPath(inputField.getText(), "Choisis l'image ou la vidéo chiffrée.");
         Path output = optionalPath(outputField.getText());
         disableActions(true);
 
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
-                updateMessage("Lecture de l'image...");
-                Mat scrambled = Imgcodecs.imread(input.toString());
-                if (scrambled.empty()) {
-                    throw new IllegalArgumentException("Impossible de lire l'image : " + input);
-                }
+                updateMessage("Lecture de l'image de référence...");
+                Mat scrambled = readCrackFrame(input);
                 Platform.runLater(() -> sourceView.setImage(MatFxUtils.matToImage(scrambled)));
 
                 updateMessage("Brute force en cours...");
+                long start = System.nanoTime();
                 ImageCracker.CrackResult result = ImageCracker.crack(scrambled, scoreCombo.getValue());
+                long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
                 Platform.runLater(() -> {
                     resultView.setImage(MatFxUtils.matToImage(result.image()));
-                    keyLabel.setText("Clé trouvée : " + result.key() + " | score = " + String.format("%.6f", result.score()));
+                    keyLabel.setText("Clé trouvée : " + result.key()
+                            + " | score = " + String.format("%.6f", result.score())
+                            + " | temps = " + elapsedMillis + " ms");
                 });
 
                 if (output != null) {
@@ -149,7 +150,7 @@ public class MainController {
                 }
                 scrambled.release();
                 result.image().release();
-                updateMessage("Cassure terminée.");
+                updateMessage("Cassure terminée en " + elapsedMillis + " ms.");
                 return null;
             }
         };
@@ -325,6 +326,21 @@ public class MainController {
     private boolean isVideoFile(Path path) {
         String name = path.getFileName().toString().toLowerCase();
         return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov") || name.endsWith(".mkv");
+    }
+
+    /**
+     * Lit directement une image ou extrait une frame exploitable depuis une video.
+     */
+    private Mat readCrackFrame(Path input) {
+        if (isVideoFile(input)) {
+            return VideoProcessor.extractRepresentativeFrame(input);
+        }
+
+        Mat image = Imgcodecs.imread(input.toString());
+        if (image.empty()) {
+            throw new IllegalArgumentException("Impossible de lire l'image : " + input);
+        }
+        return image;
     }
 
     /**
