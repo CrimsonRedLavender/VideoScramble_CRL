@@ -16,6 +16,7 @@ public final class VideoProcessor {
     private VideoProcessor() {
     }
 
+    // prend la video et la coupe en matrices
     public static List<Integer> probeBlocks(Path input) {
         VideoCapture capture = new VideoCapture(input.toString());
         if (!capture.isOpened()) {
@@ -29,6 +30,7 @@ public final class VideoProcessor {
         }
     }
 
+    // prend la video et crypte chaque frame de la video
     public static void processVideo(Path input,
                                     Path output,
                                     Mode mode,
