@@ -1,15 +1,39 @@
+/*
+ * Projet VideoScramble_CRL
+ * Programmation multimedia - JavaFX / OpenCV
+ * Ce fichier contient la recherche de cle par force brute sur une image.
+ */
+
 package com.example.videoscramble;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
+/**
+ * Essaie toutes les cles possibles pour retrouver celle qui decrypte le mieux
+ * une image chiffree avec VideoScramble.
+ */
 public final class ImageCracker {
     private ImageCracker() {
     }
 
+    /**
+     * Resultat d'une tentative de cassage de cle.
+     *
+     * @param key meilleure cle trouvee
+     * @param score score associe a l'image decryptee
+     * @param image image obtenue avec la meilleure cle
+     */
     public record CrackResult(ScrambleKey key, double score, Mat image) {}
 
+    /**
+     * Teste les 32768 cles possibles et conserve celle qui maximise le score.
+     *
+     * @param scrambled image chiffree a analyser
+     * @param method critere de score utilise pour comparer les lignes voisines
+     * @return meilleure cle trouvee avec l'image decryptee correspondante
+     */
     public static CrackResult crack(Mat scrambled, ScoreMethod method) {
         Mat bestImage = null;
         ScrambleKey bestKey = null;
@@ -35,6 +59,9 @@ public final class ImageCracker {
         return new CrackResult(bestKey, bestScore, bestImage);
     }
 
+    /**
+     * Calcule un score global en comparant chaque paire de lignes consecutives.
+     */
     private static double score(Mat image, ScoreMethod method) {
         Mat gray = new Mat();
         if (image.channels() == 1) {
@@ -58,6 +85,9 @@ public final class ImageCracker {
         return total;
     }
 
+    /**
+     * Calcule la distance euclidienne entre deux lignes en niveaux de gris.
+     */
     private static double euclidean(double[] a, double[] b) {
         double sum = 0.0;
         for (int i = 0; i < a.length; i++) {
@@ -67,6 +97,9 @@ public final class ImageCracker {
         return Math.sqrt(sum);
     }
 
+    /**
+     * Calcule la correlation de Pearson entre deux lignes en niveaux de gris.
+     */
     private static double pearson(double[] a, double[] b) {
         double meanA = mean(a);
         double meanB = mean(b);
@@ -87,6 +120,9 @@ public final class ImageCracker {
         return num / Math.sqrt(denA * denB);
     }
 
+    /**
+     * Calcule la moyenne des valeurs d'une ligne.
+     */
     private static double mean(double[] values) {
         double sum = 0.0;
         for (double value : values) {

@@ -1,3 +1,9 @@
+/*
+ * Projet VideoScramble_CRL
+ * Programmation multimedia - JavaFX / OpenCV
+ * Ce fichier controle l'interface graphique de l'application.
+ */
+
 package com.example.videoscramble;
 
 import javafx.application.Platform;
@@ -15,6 +21,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+/**
+ * Controleur JavaFX de la fenetre principale.
+ *
+ * <p>Il relie les actions de l'utilisateur aux traitements OpenCV : choix des
+ * fichiers, chiffrement, dechiffrement, cassage de cle et affichage des apercus.</p>
+ */
 public class MainController {
     @FXML private TextField inputField;
     @FXML private TextField outputField;
@@ -31,6 +43,9 @@ public class MainController {
     @FXML private Button decryptButton;
     @FXML private Button crackImageButton;
 
+    /**
+     * Initialise les valeurs par defaut de l'interface.
+     */
     @FXML
     public void initialize() {
         scoreCombo.getItems().setAll(ScoreMethod.values());
@@ -42,6 +57,9 @@ public class MainController {
         updateKeyLabel();
     }
 
+    /**
+     * Ouvre un selecteur pour choisir la video ou l'image source.
+     */
     @FXML
     private void browseInput() {
         FileChooser chooser = new FileChooser();
@@ -64,6 +82,9 @@ public class MainController {
         }
     }
 
+    /**
+     * Ouvre un selecteur pour choisir le fichier de sortie.
+     */
     @FXML
     private void browseOutput() {
         FileChooser chooser = new FileChooser();
@@ -79,16 +100,25 @@ public class MainController {
         }
     }
 
+    /**
+     * Lance le chiffrement de la video selectionnee.
+     */
     @FXML
     private void encrypt() {
         launchVideoTask(Mode.ENCRYPT);
     }
 
+    /**
+     * Lance le dechiffrement de la video selectionnee.
+     */
     @FXML
     private void decrypt() {
         launchVideoTask(Mode.DECRYPT);
     }
 
+    /**
+     * Cherche la cle d'une image chiffree par force brute.
+     */
     @FXML
     private void crackImage() {
         Path input = requiredPath(inputField.getText(), "Choisis l'image chiffrée.");
@@ -126,6 +156,9 @@ public class MainController {
         bindAndRun(task);
     }
 
+    /**
+     * Enregistre la cle actuellement saisie dans un fichier texte.
+     */
     @FXML
     private void saveKeyToText() {
         ScrambleKey key = readKey();
@@ -144,6 +177,9 @@ public class MainController {
         }
     }
 
+    /**
+     * Met a jour l'affichage de la cle quand les champs changent.
+     */
     @FXML
     private void updateKeyLabel() {
         try {
@@ -153,6 +189,9 @@ public class MainController {
         }
     }
 
+    /**
+     * Prepare et lance une tache de traitement video en arriere-plan.
+     */
     private void launchVideoTask(Mode mode) {
         Path input = requiredPath(inputField.getText(), "Choisis la vidéo d'entrée.");
         Path output = requiredPath(outputField.getText(), "Choisis la vidéo de sortie.");
@@ -198,6 +237,9 @@ public class MainController {
         bindAndRun(task);
     }
 
+    /**
+     * Branche une tache JavaFX sur le label de statut et la demarre.
+     */
     private void bindAndRun(Task<Void> task) {
         statusLabel.textProperty().bind(task.messageProperty());
         task.setOnSucceeded(e -> finishTask());
@@ -211,23 +253,35 @@ public class MainController {
         thread.start();
     }
 
+    /**
+     * Retablit l'interface apres la fin d'une tache.
+     */
     private void finishTask() {
         statusLabel.textProperty().unbind();
         disableActions(false);
     }
 
+    /**
+     * Active ou desactive les actions longues pendant un traitement.
+     */
     private void disableActions(boolean disabled) {
         encryptButton.setDisable(disabled);
         decryptButton.setDisable(disabled);
         crackImageButton.setDisable(disabled);
     }
 
+    /**
+     * Construit une cle a partir des champs de saisie.
+     */
     private ScrambleKey readKey() {
         int offset = Integer.parseInt(offsetField.getText().trim());
         int step = Integer.parseInt(stepField.getText().trim());
         return new ScrambleKey(offset, step);
     }
 
+    /**
+     * Convertit un texte obligatoire en chemin de fichier.
+     */
     private Path requiredPath(String text, String message) {
         if (text == null || text.isBlank()) {
             throw new IllegalArgumentException(message);
@@ -235,15 +289,24 @@ public class MainController {
         return Path.of(text.trim());
     }
 
+    /**
+     * Convertit un texte optionnel en chemin de fichier.
+     */
     private Path optionalPath(String text) {
         return text == null || text.isBlank() ? null : Path.of(text.trim());
     }
 
+    /**
+     * Determine si le fichier choisi semble etre une video selon son extension.
+     */
     private boolean isVideoFile(Path path) {
         String name = path.getFileName().toString().toLowerCase();
         return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov") || name.endsWith(".mkv");
     }
 
+    /**
+     * Cree le dossier parent d'un fichier si celui-ci n'existe pas encore.
+     */
     private void ensureParent(Path path) throws IOException {
         Path parent = path.toAbsolutePath().getParent();
         if (parent != null && !Files.exists(parent)) {
@@ -251,10 +314,16 @@ public class MainController {
         }
     }
 
+    /**
+     * Retourne la fenetre JavaFX courante pour ouvrir les boites de dialogue.
+     */
     private Window window() {
         return inputField.getScene() == null ? null : inputField.getScene().getWindow();
     }
 
+    /**
+     * Affiche un message d'etat dans l'interface.
+     */
     private void status(String text) {
         statusLabel.textProperty().unbind();
         statusLabel.setText(text);
