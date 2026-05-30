@@ -59,6 +59,8 @@ public final class CommandLineRunner {
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> <r> <s>");
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> <r> <s> --embed-key");
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --embedded-key");
+        System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> <r> <s> --change-key-every <frames> --embed-key");
+        System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> <r> <s> --change-key-every <frames>");
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> --key-file <fichier>");
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --key-file <fichier>");
         System.out.println("  java ... MainApp crack <image-ou-video> [sortie-image] [PEARSON|EUCLIDEAN]");
@@ -74,7 +76,7 @@ public final class CommandLineRunner {
             Path input = Path.of(args[1]);
             Path output = Path.of(args[2]);
             ScrambleKey[] lastPrintedKey = new ScrambleKey[1];
-            VideoProcessor.processVideo(input, output, mode, new ScrambleKey(0, 0), false, true, null,
+            VideoProcessor.processVideo(input, output, mode, new ScrambleKey(0, 0), false, true, 0, null,
                     usedKey -> {
                         if (!usedKey.equals(lastPrintedKey[0])) {
                             System.out.println("Cle lue : " + usedKey);
@@ -94,10 +96,14 @@ public final class CommandLineRunner {
         Path output = Path.of(args[2]);
         ScrambleKey key = readKeyArgument(args, 3);
         boolean embedKey = mode == Mode.ENCRYPT && hasFlag(args, "--embed-key");
+        int keyChangeInterval = intOption(args, "--change-key-every", 0);
 
-        VideoProcessor.processVideo(input, output, mode, key, embedKey, false, null, null);
+        VideoProcessor.processVideo(input, output, mode, key, embedKey, false, keyChangeInterval, null, null);
         System.out.println((mode == Mode.ENCRYPT ? "Chiffrement" : "Dechiffrement") + " termine : " + output);
         System.out.println("Cle utilisee : " + key);
+        if (keyChangeInterval > 0) {
+            System.out.println("Changement de cle toutes les " + keyChangeInterval + " frames.");
+        }
         if (embedKey) {
             System.out.println("Cle embarquee dans chaque image.");
         }
@@ -258,5 +264,24 @@ public final class CommandLineRunner {
             }
         }
         return false;
+    }
+
+    /**
+     * Lit une option entiere dans les arguments, ou retourne une valeur par defaut.
+     */
+    private static int intOption(String[] args, String option, int defaultValue) {
+        for (int i = 0; i < args.length; i++) {
+            if (option.equalsIgnoreCase(args[i])) {
+                if (i + 1 >= args.length) {
+                    throw new IllegalArgumentException("Valeur manquante pour " + option);
+                }
+                int value = Integer.parseInt(args[i + 1]);
+                if (value <= 0) {
+                    throw new IllegalArgumentException(option + " doit être strictement positif.");
+                }
+                return value;
+            }
+        }
+        return defaultValue;
     }
 }

@@ -41,6 +41,8 @@ public class MainController {
     @FXML private CheckBox showPreviewCheckBox;
     @FXML private CheckBox embedKeyCheckBox;
     @FXML private CheckBox readEmbeddedKeyCheckBox;
+    @FXML private CheckBox changeKeyCheckBox;
+    @FXML private TextField keyChangeIntervalField;
     @FXML private Button encryptButton;
     @FXML private Button decryptButton;
     @FXML private Button crackImageButton;
@@ -57,6 +59,8 @@ public class MainController {
         showPreviewCheckBox.setSelected(true);
         embedKeyCheckBox.setSelected(false);
         readEmbeddedKeyCheckBox.setSelected(false);
+        changeKeyCheckBox.setSelected(false);
+        keyChangeIntervalField.setText("100");
         status("Prêt.");
         updateKeyLabel();
     }
@@ -228,6 +232,7 @@ public class MainController {
         Path input = requiredPath(inputField.getText(), "Choisis la vidéo d'entrée.");
         Path output = requiredPath(outputField.getText(), "Choisis la vidéo de sortie.");
         ScrambleKey key = readEmbeddedKeyCheckBox.isSelected() && mode == Mode.DECRYPT ? new ScrambleKey(0, 0) : readKey();
+        int keyChangeInterval = changeKeyCheckBox.isSelected() ? readKeyChangeInterval() : 0;
         disableActions(true);
 
         Task<Void> task = new Task<>() {
@@ -240,6 +245,7 @@ public class MainController {
                 VideoProcessor.processVideo(input, output, mode, key,
                         embedKeyCheckBox.isSelected() && mode == Mode.ENCRYPT,
                         readEmbeddedKeyCheckBox.isSelected() && mode == Mode.DECRYPT,
+                        keyChangeInterval,
                         showPreviewCheckBox.isSelected() ? (source, result) -> {
                     Mat sourceCopy = source.clone();
                     Mat resultCopy = result.clone();
@@ -313,6 +319,17 @@ public class MainController {
         int offset = Integer.parseInt(offsetField.getText().trim());
         int step = Integer.parseInt(stepField.getText().trim());
         return new ScrambleKey(offset, step);
+    }
+
+    /**
+     * Lit l'intervalle de changement de cle depuis l'IHM.
+     */
+    private int readKeyChangeInterval() {
+        int interval = Integer.parseInt(keyChangeIntervalField.getText().trim());
+        if (interval <= 0) {
+            throw new IllegalArgumentException("L'intervalle de changement de clé doit être positif.");
+        }
+        return interval;
     }
 
     /**

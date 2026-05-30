@@ -111,7 +111,7 @@ public final class VideoProcessor {
                                     Mode mode,
                                     ScrambleKey key,
                                     BiConsumer<Mat, Mat> onFrame) throws IOException {
-        processVideo(input, output, mode, key, false, false, onFrame, null);
+        processVideo(input, output, mode, key, false, false, 0, onFrame, null);
     }
 
     /**
@@ -123,6 +123,7 @@ public final class VideoProcessor {
      * @param key cle par defaut, utilisee si aucune cle embarquee n'est lue
      * @param embedKey true pour ecrire la cle dans chaque image chiffree
      * @param readEmbeddedKey true pour lire la cle depuis chaque image avant dechiffrement
+     * @param keyChangeInterval nombre de frames entre deux changements de cle, ou 0 pour garder la meme cle
      * @param onFrame callback optionnel utilise par l'IHM pour afficher l'apercu
      * @param onKey callback optionnel appele quand une cle est utilisee
      * @throws IOException si le dossier de sortie ne peut pas etre cree
@@ -133,6 +134,7 @@ public final class VideoProcessor {
                                     ScrambleKey key,
                                     boolean embedKey,
                                     boolean readEmbeddedKey,
+                                    int keyChangeInterval,
                                     BiConsumer<Mat, Mat> onFrame,
                                     Consumer<ScrambleKey> onKey) throws IOException {
         ensureReadableFile(input);
@@ -163,12 +165,14 @@ public final class VideoProcessor {
         }
 
         Mat frame = new Mat();
+        long frameIndex = 0;
         try {
             while (capture.read(frame)) {
                 if (frame.empty()) {
                     continue;
                 }
-                ScrambleKey frameKey = mode == Mode.DECRYPT && readEmbeddedKey ? KeyEmbedder.extract(frame) : key;
+                ScrambleKey scheduledKey = scheduledKey(key, frameIndex, keyChangeInterval);
+                ScrambleKey frameKey = mode == Mode.DECRYPT && readEmbeddedKey ? KeyEmbedder.extract(frame) : scheduledKey;
                 if (onKey != null) {
                     onKey.accept(frameKey);
                 }
@@ -191,6 +195,7 @@ public final class VideoProcessor {
 
                 writer.write(processed);
                 processed.release();
+                frameIndex++;
             }
         } finally {
             frame.release();
@@ -219,6 +224,20 @@ public final class VideoProcessor {
         if (parent != null && !Files.exists(parent)) {
             Files.createDirectories(parent);
         }
+    }
+
+    /**
+     * Calcule une cle deterministe pour permettre un changement periodique en cours de video.
+     */
+    private static ScrambleKey scheduledKey(ScrambleKey baseKey, long frameIndex, int keyChangeInterval) {
+        if (keyChangeInterval <= 0) {
+            return baseKey;
+        }
+
+        long group = frameIndex / keyChangeInterval;
+        int offset = (int) ((baseKey.offset() + 73L * group) % 256);
+        int step = (int) ((baseKey.step() + 37L * group) % 128);
+        return new ScrambleKey(offset, step);
     }
 
     /**
