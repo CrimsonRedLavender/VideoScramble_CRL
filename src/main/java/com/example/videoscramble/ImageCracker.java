@@ -8,6 +8,7 @@ package com.example.videoscramble;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 /**
@@ -15,6 +16,8 @@ import org.opencv.imgproc.Imgproc;
  * une image chiffree avec VideoScramble.
  */
 public final class ImageCracker {
+    private static final int MAX_SCORING_WIDTH = 480;
+
     private ImageCracker() {
     }
 
@@ -35,28 +38,45 @@ public final class ImageCracker {
      * @return meilleure cle trouvee avec l'image decryptee correspondante
      */
     public static CrackResult crack(Mat scrambled, ScoreMethod method) {
-        Mat bestImage = null;
+        Mat scoringImage = resizeForScoring(scrambled);
         ScrambleKey bestKey = null;
         double bestScore = Double.NEGATIVE_INFINITY;
 
-        for (int r = 0; r <= 255; r++) {
-            for (int s = 0; s <= 127; s++) {
-                ScrambleKey key = new ScrambleKey(r, s);
-                Mat candidate = LineScrambler.unscramble(scrambled, key);
-                double score = score(candidate, method);
-                if (score > bestScore) {
-                    if (bestImage != null) {
-                        bestImage.release();
+        try {
+            for (int r = 0; r <= 255; r++) {
+                for (int s = 0; s <= 127; s++) {
+                    ScrambleKey key = new ScrambleKey(r, s);
+                    Mat candidate = LineScrambler.unscramble(scoringImage, key);
+                    double score = score(candidate, method);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestKey = key;
                     }
-                    bestScore = score;
-                    bestKey = key;
-                    bestImage = candidate.clone();
+                    candidate.release();
                 }
-                candidate.release();
+            }
+        } finally {
+            if (scoringImage != scrambled) {
+                scoringImage.release();
             }
         }
 
+        Mat bestImage = LineScrambler.unscramble(scrambled, bestKey);
         return new CrackResult(bestKey, bestScore, bestImage);
+    }
+
+    /**
+     * Reduit l'image analysee pour accelerer la recherche exhaustive de cle.
+     */
+    private static Mat resizeForScoring(Mat image) {
+        if (image.cols() <= MAX_SCORING_WIDTH) {
+            return image;
+        }
+
+        // La hauteur doit rester identique, car la permutation depend des blocs de lignes.
+        Mat resized = new Mat();
+        Imgproc.resize(image, resized, new Size(MAX_SCORING_WIDTH, image.rows()), 0, 0, Imgproc.INTER_AREA);
+        return resized;
     }
 
     /**

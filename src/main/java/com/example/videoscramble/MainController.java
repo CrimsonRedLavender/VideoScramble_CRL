@@ -32,9 +32,9 @@ public class MainController {
     @FXML private TextField outputField;
     @FXML private TextField offsetField;
     @FXML private TextField stepField;
-    @FXML private Label keyLabel;
-    @FXML private Label blocksLabel;
-    @FXML private Label statusLabel;
+    @FXML private TextField keyLabel;
+    @FXML private TextField blocksLabel;
+    @FXML private TextField statusLabel;
     @FXML private ComboBox<ScoreMethod> scoreCombo;
     @FXML private ImageView sourceView;
     @FXML private ImageView resultView;
@@ -126,14 +126,14 @@ public class MainController {
      */
     @FXML
     private void crackImage() {
-        Path input = requiredPath(inputField.getText(), "Choisis l'image ou la vidéo chiffrée.");
+        Path input = requiredPath(inputField.getText(), "Choisis la vidéo chiffrée.");
         Path output = optionalPath(outputField.getText());
         disableActions(true);
 
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
-                updateMessage("Lecture de l'image de référence...");
+                updateMessage("Lecture de l'image de référence depuis la vidéo...");
                 Mat scrambled = readCrackFrame(input);
                 Platform.runLater(() -> sourceView.setImage(MatFxUtils.matToImage(scrambled)));
 
@@ -150,8 +150,11 @@ public class MainController {
                 });
 
                 if (output != null) {
+                    ensureImageOutput(output);
                     ensureParent(output);
-                    Imgcodecs.imwrite(output.toString(), result.image());
+                    if (!Imgcodecs.imwrite(output.toString(), result.image())) {
+                        throw new IllegalStateException("Impossible d'écrire l'image : " + output);
+                    }
                 }
                 scrambled.release();
                 result.image().release();
@@ -335,6 +338,23 @@ public class MainController {
     private boolean isVideoFile(Path path) {
         String name = path.getFileName().toString().toLowerCase();
         return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov") || name.endsWith(".mkv");
+    }
+
+    /**
+     * Determine si le fichier choisi semble etre une image selon son extension.
+     */
+    private boolean isImageFile(Path path) {
+        String name = path.getFileName().toString().toLowerCase();
+        return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".bmp");
+    }
+
+    /**
+     * Verifie que la sortie du cassage est bien une image ecrivable par OpenCV.
+     */
+    private void ensureImageOutput(Path output) {
+        if (!isImageFile(output)) {
+            throw new IllegalArgumentException("La sortie du cassage doit être une image (.png, .jpg, .jpeg ou .bmp) : " + output);
+        }
     }
 
     /**

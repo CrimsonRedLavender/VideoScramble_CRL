@@ -126,7 +126,10 @@ public final class CommandLineRunner {
 
             try {
                 if (output != null) {
-                    Imgcodecs.imwrite(output.toString(), result.image());
+                    ensureImageOutput(output);
+                    if (!Imgcodecs.imwrite(output.toString(), result.image())) {
+                        throw new IllegalStateException("Impossible d'écrire l'image : " + output);
+                    }
                 }
                 System.out.println("Cle trouvee : " + result.key());
                 System.out.println("Score : " + result.score());
@@ -226,6 +229,23 @@ public final class CommandLineRunner {
     private static boolean isVideoFile(Path path) {
         String name = path.getFileName().toString().toLowerCase();
         return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov") || name.endsWith(".mkv");
+    }
+
+    /**
+     * Determine si le fichier semble etre une image selon son extension.
+     */
+    private static boolean isImageFile(Path path) {
+        String name = path.getFileName().toString().toLowerCase();
+        return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".bmp");
+    }
+
+    /**
+     * Verifie que la sortie du cassage est bien une image ecrivable par OpenCV.
+     */
+    private static void ensureImageOutput(Path output) {
+        if (!isImageFile(output)) {
+            throw new IllegalArgumentException("La sortie du cassage doit être une image (.png, .jpg, .jpeg ou .bmp) : " + output);
+        }
     }
 
     /**

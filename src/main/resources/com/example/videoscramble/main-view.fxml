@@ -27,11 +27,11 @@
                 </columnConstraints>
 
                 <Label text="Entrée" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-                <TextField fx:id="inputField" promptText="Vidéo ou image d'entrée" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                <TextField fx:id="inputField" promptText="Vidéo d'entrée" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
                 <Button text="Parcourir" onAction="#browseInput" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
 
                 <Label text="Sortie" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-                <TextField fx:id="outputField" promptText="Vidéo ou image de sortie" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                <TextField fx:id="outputField" promptText="Vidéo de sortie, ou image .png pour le cassage" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
                 <Button text="Parcourir" onAction="#browseOutput" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
 
                 <Label text="Offset r" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
@@ -44,7 +44,7 @@
             <HBox spacing="10">
                 <Button fx:id="encryptButton" text="Chiffrer la vidéo" onAction="#encrypt"/>
                 <Button fx:id="decryptButton" text="Déchiffrer la vidéo" onAction="#decrypt"/>
-                <Button fx:id="crackImageButton" text="Casser une image" onAction="#crackImage"/>
+                <Button fx:id="crackImageButton" text="Casser la clé" onAction="#crackImage"/>
                 <Button text="Enregistrer la clé" onAction="#saveKeyToText"/>
                 <Button text="Charger la clé" onAction="#loadKeyFromText"/>
                 <CheckBox fx:id="showPreviewCheckBox" text="Afficher l'aperçu"/>
@@ -55,9 +55,9 @@
             </HBox>
 
             <VBox spacing="4">
-                <Label fx:id="keyLabel" text="Clé :"/>
-                <Label fx:id="blocksLabel" text="Blocs :"/>
-                <Label fx:id="statusLabel" text="Prêt."/>
+                <TextField fx:id="keyLabel" text="Clé :" editable="false"/>
+                <TextField fx:id="blocksLabel" text="Blocs :" editable="false"/>
+                <TextField fx:id="statusLabel" text="Prêt." editable="false"/>
             </VBox>
         </VBox>
     </top>

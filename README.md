@@ -1,10 +1,10 @@
-# VideoScramble - version finale propre pour soutenance
+# VideoScramble
 
-Projet Java 17 conforme au cahier des charges :
+Projet Java 17 pour le chiffrement vidéo à l'ancienne :
 - JavaFX pour l'interface
 - OpenCV pour la lecture/écriture et le traitement vidéo
 - chiffrement/déchiffrement par permutation de lignes
-- cassure de clé sur image ou vidéo par force brute avec score Pearson ou Euclidien
+- cassure de clé sur une frame extraite d'une vidéo avec score Pearson ou Euclidien
 
 ## Bibliothèques utilisées
 - JavaFX
@@ -16,7 +16,7 @@ Projet Java 17 conforme au cahier des charges :
 - `MainController.java` : interface, boutons et orchestration
 - `VideoProcessor.java` : lecture/écriture vidéo OpenCV
 - `LineScrambler.java` : permutation des lignes par blocs de puissances de 2
-- `ImageCracker.java` : brute force d'une image
+- `ImageCracker.java` : brute force d'une frame extraite de la vidéo
 - `CommandLineRunner.java` : mode ligne de commande
 - `KeyIO.java` : lecture/écriture d'une clé dans un fichier texte
 
@@ -54,12 +54,12 @@ mvn javafx:run -Djavafx.args="encrypt entree.mp4 sortie.mp4 37 12 --embed-key"
 mvn javafx:run -Djavafx.args="decrypt sortie.mp4 video_dechiffree.mp4 --embedded-key"
 ```
 
-Casser une clé depuis une image ou une vidéo chiffrée :
+Casser une clé depuis une vidéo chiffrée. Le résultat est une image déchiffrée correspondant à la frame analysée :
 ```bash
 mvn javafx:run -Djavafx.args="crack video_chiffree.mp4 image_dechiffree.png PEARSON"
 ```
 
-Valider l'algorithme sur une image avec un aller-retour chiffrement puis déchiffrement :
+Valider l'algorithme sur une image extraite ou fournie en test, avec un aller-retour chiffrement puis déchiffrement :
 ```bash
 mvn javafx:run -Djavafx.args="validate-image image.png 37 12"
 ```
@@ -78,7 +78,7 @@ Le fichier de clé contient simplement deux entiers :
 6. Reprendre la même clé
 7. Cliquer sur **Déchiffrer la vidéo**
 8. Montrer que l'image d'origine est retrouvée
-9. Charger une image ou une vidéo chiffrée et utiliser **Casser une image**
+9. Charger une vidéo chiffrée et utiliser **Casser la clé**
 
 ## Remarques techniques
 - La permutation s'applique par blocs successifs de tailles puissances de 2.
@@ -86,3 +86,4 @@ Le fichier de clé contient simplement deux entiers :
 - Le fichier de sortie est créé automatiquement si son dossier parent existe ou peut être créé.
 - La clé embarquée est encodée dans des blocs clairs/sombres en haut à gauche de l'image. C'est une variante robuste de l'idée du sujet, choisie pour résister au codec `mp4v` disponible sur la machine de démonstration.
 - Le code tente aussi d'utiliser FFV1 pour les sorties `.mkv` si le backend OpenCV/FFmpeg local le supporte.
+- Le cassage de clé teste toujours les 32768 clés possibles. Pour accélérer la démonstration, la frame est réduite uniquement en largeur avant le calcul du score ; la hauteur reste inchangée pour conserver les mêmes blocs de lignes.
