@@ -4,7 +4,7 @@ Projet Java 17 pour le chiffrement vidéo à l'ancienne :
 - JavaFX pour l'interface
 - OpenCV pour la lecture/écriture et le traitement vidéo
 - chiffrement/déchiffrement par permutation de lignes
-- cassure de clé sur une frame extraite d'une vidéo avec score Pearson ou Euclidien
+- cassure de clé sur une frame extraite d'une vidéo avec score euclidien
 
 ## Bibliothèques utilisées
 - JavaFX
@@ -60,6 +60,12 @@ mvn javafx:run -Djavafx.args="encrypt entree.mp4 sortie.mp4 37 12 --change-key-e
 mvn javafx:run -Djavafx.args="decrypt sortie.mp4 video_dechiffree.mp4 --embedded-key"
 ```
 
+Choisir la méthode d'embarquement :
+```bash
+mvn javafx:run -Djavafx.args="encrypt entree.mp4 sortie.mp4 37 12 --embed-key --embedding ROBUST_BLOCKS"
+mvn javafx:run -Djavafx.args="encrypt entree.mp4 sortie.mp4 37 12 --embed-key --embedding LSB_MAJORITY"
+```
+
 Sans clé embarquée, il faut fournir la même clé initiale et le même intervalle au déchiffrement :
 ```bash
 mvn javafx:run -Djavafx.args="decrypt sortie.mp4 video_dechiffree.mp4 37 12 --change-key-every 100"
@@ -67,7 +73,7 @@ mvn javafx:run -Djavafx.args="decrypt sortie.mp4 video_dechiffree.mp4 37 12 --ch
 
 Casser une clé depuis une vidéo chiffrée. Le résultat est une image déchiffrée correspondant à la frame analysée :
 ```bash
-mvn javafx:run -Djavafx.args="crack video_chiffree.mp4 image_dechiffree.png PEARSON"
+mvn javafx:run -Djavafx.args="crack video_chiffree.mp4 image_dechiffree.png"
 ```
 
 Valider l'algorithme sur une image extraite ou fournie en test, avec un aller-retour chiffrement puis déchiffrement :
@@ -95,7 +101,7 @@ Le fichier de clé contient simplement deux entiers :
 - La permutation s'applique par blocs successifs de tailles puissances de 2.
 - L'audio est volontairement ignoré.
 - Le fichier de sortie est créé automatiquement si son dossier parent existe ou peut être créé.
-- La clé embarquée est encodée dans les bits de poids faible des premiers pixels. Chaque bit est répété 101 fois, puis relu par vote majoritaire bit par bit pour mieux résister aux modifications dues à la compression.
+- Deux méthodes d'embarquement sont disponibles. `LSB_MAJORITY` répète chaque bit 101 fois dans les bits de poids faible, puis relit par vote majoritaire. `ROBUST_BLOCKS` utilise des blocs clairs/sombres, moins discret mais plus fiable avec le codec MP4 de la machine de démonstration.
 - Le codec FFV1 n'est pas utilisé, car le backend OpenCV disponible sur la machine de démonstration ne permet pas d'écrire correctement ce format.
 - Le cassage de clé teste toujours les 32768 clés possibles. Pour accélérer la démonstration, la frame est réduite uniquement en largeur avant le calcul du score ; la hauteur reste inchangée pour conserver les mêmes blocs de lignes.
 - L'option de changement périodique de clé utilise une suite déterministe calculée depuis la clé initiale et le numéro de frame. La première période utilise la clé saisie, puis une nouvelle clé est générée toutes les N frames.

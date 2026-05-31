@@ -41,20 +41,40 @@
                 <TextField fx:id="stepField" onKeyReleased="#updateKeyLabel" GridPane.rowIndex="1" GridPane.columnIndex="4"/>
             </GridPane>
 
-            <HBox spacing="10">
-                <Button fx:id="encryptButton" text="Chiffrer la vidéo" onAction="#encrypt"/>
-                <Button fx:id="decryptButton" text="Déchiffrer la vidéo" onAction="#decrypt"/>
-                <Button fx:id="crackImageButton" text="Casser la clé" onAction="#crackImage"/>
-                <Button text="Enregistrer la clé" onAction="#saveKeyToText"/>
-                <Button text="Charger la clé" onAction="#loadKeyFromText"/>
-                <CheckBox fx:id="showPreviewCheckBox" text="Afficher l'aperçu"/>
-                <CheckBox fx:id="embedKeyCheckBox" text="Embarquer clé"/>
-                <CheckBox fx:id="readEmbeddedKeyCheckBox" text="Lire clé embarquée"/>
-                <CheckBox fx:id="changeKeyCheckBox" text="Changer clé"/>
-                <TextField fx:id="keyChangeIntervalField" prefWidth="70" promptText="100"/>
-                <Label text="Score"/>
-                <ComboBox fx:id="scoreCombo" prefWidth="140"/>
-            </HBox>
+            <VBox spacing="8">
+                <HBox spacing="10">
+                    <Label text="Clé" style="-fx-font-weight: bold;"/>
+                    <Button text="Enregistrer la clé" onAction="#saveKeyToText"/>
+                    <Button text="Charger la clé" onAction="#loadKeyFromText"/>
+                </HBox>
+
+                <HBox spacing="10">
+                    <Label text="Chiffrement" style="-fx-font-weight: bold;"/>
+                    <Button fx:id="encryptButton" text="Chiffrer la vidéo" onAction="#encrypt"/>
+                    <CheckBox fx:id="embedKeyCheckBox" text="Embarquer clé"/>
+                    <CheckBox fx:id="changeKeyCheckBox" text="Changer clé toutes les"/>
+                    <TextField fx:id="keyChangeIntervalField" prefWidth="70" promptText="100"/>
+                    <Label text="images"/>
+                </HBox>
+
+                <HBox spacing="10">
+                    <Label text="Déchiffrement" style="-fx-font-weight: bold;"/>
+                    <Button fx:id="decryptButton" text="Déchiffrer la vidéo" onAction="#decrypt"/>
+                    <CheckBox fx:id="readEmbeddedKeyCheckBox" text="Lire clé embarquée"/>
+                    <Label text="Méthode"/>
+                    <ComboBox fx:id="embeddingMethodCombo" prefWidth="130"/>
+                </HBox>
+
+                <HBox spacing="10">
+                    <Label text="Cassage" style="-fx-font-weight: bold;"/>
+                    <Button fx:id="crackImageButton" text="Casser la clé" onAction="#crackImage"/>
+                </HBox>
+
+                <HBox spacing="10">
+                    <Label text="Affichage" style="-fx-font-weight: bold;"/>
+                    <CheckBox fx:id="showPreviewCheckBox" text="Afficher l'aperçu"/>
+                </HBox>
+            </VBox>
 
             <VBox spacing="4">
                 <TextField fx:id="keyLabel" text="Clé :" editable="false"/>

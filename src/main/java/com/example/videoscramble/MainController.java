@@ -35,12 +35,12 @@ public class MainController {
     @FXML private TextField keyLabel;
     @FXML private TextField blocksLabel;
     @FXML private TextField statusLabel;
-    @FXML private ComboBox<ScoreMethod> scoreCombo;
     @FXML private ImageView sourceView;
     @FXML private ImageView resultView;
     @FXML private CheckBox showPreviewCheckBox;
     @FXML private CheckBox embedKeyCheckBox;
     @FXML private CheckBox readEmbeddedKeyCheckBox;
+    @FXML private ComboBox<EmbeddingMethod> embeddingMethodCombo;
     @FXML private CheckBox changeKeyCheckBox;
     @FXML private TextField keyChangeIntervalField;
     @FXML private Button encryptButton;
@@ -52,13 +52,13 @@ public class MainController {
      */
     @FXML
     public void initialize() {
-        scoreCombo.getItems().setAll(ScoreMethod.values());
-        scoreCombo.setValue(ScoreMethod.PEARSON);
         offsetField.setText("37");
         stepField.setText("12");
         showPreviewCheckBox.setSelected(true);
         embedKeyCheckBox.setSelected(false);
         readEmbeddedKeyCheckBox.setSelected(false);
+        embeddingMethodCombo.getItems().setAll(EmbeddingMethod.values());
+        embeddingMethodCombo.setValue(EmbeddingMethod.LUM_BLOCKS);
         changeKeyCheckBox.setSelected(false);
         keyChangeIntervalField.setText("100");
         status("Prêt.");
@@ -143,7 +143,7 @@ public class MainController {
 
                 updateMessage("Brute force en cours...");
                 long start = System.nanoTime();
-                ImageCracker.CrackResult result = ImageCracker.crack(scrambled, scoreCombo.getValue());
+                ImageCracker.CrackResult result = ImageCracker.crack(scrambled);
                 long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
                 Platform.runLater(() -> {
@@ -246,6 +246,7 @@ public class MainController {
                         embedKeyCheckBox.isSelected() && mode == Mode.ENCRYPT,
                         readEmbeddedKeyCheckBox.isSelected() && mode == Mode.DECRYPT,
                         keyChangeInterval,
+                        embeddingMethodCombo.getValue(),
                         showPreviewCheckBox.isSelected() ? (source, result) -> {
                     Mat sourceCopy = source.clone();
                     Mat resultCopy = result.clone();

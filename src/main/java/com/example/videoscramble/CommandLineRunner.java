@@ -61,9 +61,10 @@ public final class CommandLineRunner {
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --embedded-key");
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> <r> <s> --change-key-every <frames> --embed-key");
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> <r> <s> --change-key-every <frames>");
+        System.out.println("  Option embarquement : --embedding LSB_MAJORITY|ROBUST_BLOCKS");
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> --key-file <fichier>");
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --key-file <fichier>");
-        System.out.println("  java ... MainApp crack <image-ou-video> [sortie-image] [PEARSON|EUCLIDEAN]");
+        System.out.println("  java ... MainApp crack <image-ou-video> [sortie-image]");
         System.out.println("  java ... MainApp validate-image <image> <r> <s>");
         System.out.println("  java ... MainApp validate-image <image> --key-file <fichier>");
     }
@@ -76,7 +77,8 @@ public final class CommandLineRunner {
             Path input = Path.of(args[1]);
             Path output = Path.of(args[2]);
             ScrambleKey[] lastPrintedKey = new ScrambleKey[1];
-            VideoProcessor.processVideo(input, output, mode, new ScrambleKey(0, 0), false, true, 0, null,
+            EmbeddingMethod embeddingMethod = embeddingMethodOption(args);
+            VideoProcessor.processVideo(input, output, mode, new ScrambleKey(0, 0), false, true, 0, embeddingMethod, null,
                     usedKey -> {
                         if (!usedKey.equals(lastPrintedKey[0])) {
                             System.out.println("Cle lue : " + usedKey);
@@ -97,8 +99,9 @@ public final class CommandLineRunner {
         ScrambleKey key = readKeyArgument(args, 3);
         boolean embedKey = mode == Mode.ENCRYPT && hasFlag(args, "--embed-key");
         int keyChangeInterval = intOption(args, "--change-key-every", 0);
+        EmbeddingMethod embeddingMethod = embeddingMethodOption(args);
 
-        VideoProcessor.processVideo(input, output, mode, key, embedKey, false, keyChangeInterval, null, null);
+        VideoProcessor.processVideo(input, output, mode, key, embedKey, false, keyChangeInterval, embeddingMethod, null, null);
         System.out.println((mode == Mode.ENCRYPT ? "Chiffrement" : "Dechiffrement") + " termine : " + output);
         System.out.println("Cle utilisee : " + key);
         if (keyChangeInterval > 0) {
@@ -120,14 +123,12 @@ public final class CommandLineRunner {
         }
 
         Path input = Path.of(args[1]);
-        Path output = args.length >= 3 && !isScoreMethod(args[2]) ? Path.of(args[2]) : null;
-        String methodArgument = output == null && args.length >= 3 ? args[2] : args.length >= 4 ? args[3] : ScoreMethod.PEARSON.name();
-        ScoreMethod method = ScoreMethod.valueOf(methodArgument.toUpperCase());
+        Path output = args.length >= 3 ? Path.of(args[2]) : null;
 
         Mat scrambled = readCrackFrame(input);
         try {
             long start = System.nanoTime();
-            ImageCracker.CrackResult result = ImageCracker.crack(scrambled, method);
+            ImageCracker.CrackResult result = ImageCracker.crack(scrambled);
             long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
             try {
@@ -218,18 +219,6 @@ public final class CommandLineRunner {
     }
 
     /**
-     * Determine si un argument correspond a une methode de score.
-     */
-    private static boolean isScoreMethod(String value) {
-        for (ScoreMethod method : ScoreMethod.values()) {
-            if (method.name().equalsIgnoreCase(value)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * Determine si le fichier semble etre une video selon son extension.
      */
     private static boolean isVideoFile(Path path) {
@@ -283,5 +272,20 @@ public final class CommandLineRunner {
             }
         }
         return defaultValue;
+    }
+
+    /**
+     * Lit la methode d'embarquement demandee, ROBUST_BLOCKS par defaut pour la demonstration.
+     */
+    private static EmbeddingMethod embeddingMethodOption(String[] args) {
+        for (int i = 0; i < args.length; i++) {
+            if ("--embedding".equalsIgnoreCase(args[i])) {
+                if (i + 1 >= args.length) {
+                    throw new IllegalArgumentException("Valeur manquante pour --embedding");
+                }
+                return EmbeddingMethod.valueOf(args[i + 1].toUpperCase());
+            }
+        }
+        return EmbeddingMethod.LUM_BLOCKS;
     }
 }

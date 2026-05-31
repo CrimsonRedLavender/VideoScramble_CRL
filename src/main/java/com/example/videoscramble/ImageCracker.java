@@ -34,10 +34,9 @@ public final class ImageCracker {
      * Teste les 32768 cles possibles et conserve celle qui maximise le score.
      *
      * @param scrambled image chiffree a analyser
-     * @param method critere de score utilise pour comparer les lignes voisines
      * @return meilleure cle trouvee avec l'image decryptee correspondante
      */
-    public static CrackResult crack(Mat scrambled, ScoreMethod method) {
+    public static CrackResult crack(Mat scrambled) {
         Mat scoringImage = resizeForScoring(scrambled);
         ScrambleKey bestKey = null;
         double bestScore = Double.NEGATIVE_INFINITY;
@@ -47,7 +46,7 @@ public final class ImageCracker {
                 for (int s = 0; s <= 127; s++) {
                     ScrambleKey key = new ScrambleKey(r, s);
                     Mat candidate = LineScrambler.unscramble(scoringImage, key);
-                    double score = score(candidate, method);
+                    double score = score(candidate);
                     if (score > bestScore) {
                         bestScore = score;
                         bestKey = key;
@@ -82,7 +81,7 @@ public final class ImageCracker {
     /**
      * Calcule un score global en comparant chaque paire de lignes consecutives.
      */
-    private static double score(Mat image, ScoreMethod method) {
+    private static double score(Mat image) {
         Mat gray = new Mat();
         if (image.channels() == 1) {
             image.convertTo(gray, CvType.CV_64F);
@@ -99,7 +98,7 @@ public final class ImageCracker {
             double[] b = new double[gray.cols()];
             gray.get(row, 0, a);
             gray.get(row + 1, 0, b);
-            total += method == ScoreMethod.PEARSON ? pearson(a, b) : -euclidean(a, b);
+            total += -euclidean(a, b);
         }
         gray.release();
         return total;
@@ -117,37 +116,4 @@ public final class ImageCracker {
         return Math.sqrt(sum);
     }
 
-    /**
-     * Calcule la correlation de Pearson entre deux lignes en niveaux de gris.
-     */
-    private static double pearson(double[] a, double[] b) {
-        double meanA = mean(a);
-        double meanB = mean(b);
-
-        double num = 0.0;
-        double denA = 0.0;
-        double denB = 0.0;
-        for (int i = 0; i < a.length; i++) {
-            double da = a[i] - meanA;
-            double db = b[i] - meanB;
-            num += da * db;
-            denA += da * da;
-            denB += db * db;
-        }
-        if (denA == 0.0 || denB == 0.0) {
-            return -1.0;
-        }
-        return num / Math.sqrt(denA * denB);
-    }
-
-    /**
-     * Calcule la moyenne des valeurs d'une ligne.
-     */
-    private static double mean(double[] values) {
-        double sum = 0.0;
-        for (double value : values) {
-            sum += value;
-        }
-        return sum / values.length;
-    }
 }
