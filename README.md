@@ -96,6 +96,6 @@ Le fichier de clé contient simplement deux entiers :
 - L'audio est volontairement ignoré.
 - Le fichier de sortie est créé automatiquement si son dossier parent existe ou peut être créé.
 - La clé embarquée est encodée dans les bits de poids faible des premiers pixels. Chaque bit est répété 101 fois, puis relu par vote majoritaire bit par bit pour mieux résister aux modifications dues à la compression.
-- Le code tente aussi d'utiliser FFV1 pour les sorties `.mkv` si le backend OpenCV/FFmpeg local le supporte.
+- Le codec FFV1 n'est pas utilisé, car le backend OpenCV disponible sur la machine de démonstration ne permet pas d'écrire correctement ce format.
 - Le cassage de clé teste toujours les 32768 clés possibles. Pour accélérer la démonstration, la frame est réduite uniquement en largeur avant le calcul du score ; la hauteur reste inchangée pour conserver les mêmes blocs de lignes.
 - L'option de changement périodique de clé utilise une suite déterministe calculée depuis la clé initiale et le numéro de frame. La première période utilise la clé saisie, puis une nouvelle clé est générée toutes les N frames.

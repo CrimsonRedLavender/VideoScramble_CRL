@@ -245,9 +245,6 @@ public final class VideoProcessor {
      */
     private static int fourccFor(Path output) {
         String name = output.getFileName().toString().toLowerCase();
-        if (name.endsWith(".mkv")) {
-            return VideoWriter.fourcc('F', 'F', 'V', '1');
-        }
         if (name.endsWith(".avi")) {
             return VideoWriter.fourcc('M', 'J', 'P', 'G');
         }
