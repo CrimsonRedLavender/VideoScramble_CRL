@@ -95,7 +95,7 @@ Le fichier de clé contient simplement deux entiers :
 - La permutation s'applique par blocs successifs de tailles puissances de 2.
 - L'audio est volontairement ignoré.
 - Le fichier de sortie est créé automatiquement si son dossier parent existe ou peut être créé.
-- La clé embarquée est encodée dans des blocs clairs/sombres en haut à gauche de l'image. C'est une variante robuste de l'idée du sujet, choisie pour résister au codec `mp4v` disponible sur la machine de démonstration.
+- La clé embarquée est encodée dans les bits de poids faible des premiers pixels. Chaque bit est répété 101 fois, puis relu par vote majoritaire bit par bit pour mieux résister aux modifications dues à la compression.
 - Le code tente aussi d'utiliser FFV1 pour les sorties `.mkv` si le backend OpenCV/FFmpeg local le supporte.
 - Le cassage de clé teste toujours les 32768 clés possibles. Pour accélérer la démonstration, la frame est réduite uniquement en largeur avant le calcul du score ; la hauteur reste inchangée pour conserver les mêmes blocs de lignes.
 - L'option de changement périodique de clé utilise une suite déterministe calculée depuis la clé initiale et le numéro de frame. La première période utilise la clé saisie, puis une nouvelle clé est générée toutes les N frames.
