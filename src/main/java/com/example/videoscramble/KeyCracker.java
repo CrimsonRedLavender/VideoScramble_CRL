@@ -1,7 +1,5 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier contient la recherche de cle par force brute sur une image.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
  */
 
 package com.example.videoscramble;
@@ -12,29 +10,28 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 /**
- * Essaie toutes les cles possibles pour retrouver celle qui decrypte le mieux
- * une image chiffree avec VideoScramble.
+ * Casse la clé par brute force
  */
-public final class ImageCracker {
+public final class KeyCracker {
     private static final int MAX_SCORING_WIDTH = 480;
 
-    private ImageCracker() {
+    private KeyCracker() {
     }
 
     /**
-     * Resultat d'une tentative de cassage de cle.
+     * Resultat d'une tentative.
      *
      * @param key meilleure cle trouvee
-     * @param score score associe a l'image decryptee
+     * @param score score de l'image
      * @param image image obtenue avec la meilleure cle
      */
     public record CrackResult(ScrambleKey key, double score, Mat image) {}
 
     /**
-     * Teste les 32768 cles possibles et conserve celle qui maximise le score.
+     * Teste toutes les cles et conserve celle qui a le score le plus fort.
      *
-     * @param scrambled image chiffree a analyser
-     * @return meilleure cle trouvee avec l'image decryptee correspondante
+     * @param scrambled image a dechiffre
+     * @return CrackResult (meilleure cle trouvee + l'image decryptee)
      */
     public static CrackResult crack(Mat scrambled) {
         Mat scoringImage = resizeForScoring(scrambled);
@@ -65,7 +62,7 @@ public final class ImageCracker {
     }
 
     /**
-     * Reduit l'image analysee pour accelerer la recherche exhaustive de cle.
+     * Reduitla taille de l'image pour accelerer la recherche de la cle.
      */
     private static Mat resizeForScoring(Mat image) {
         if (image.cols() <= MAX_SCORING_WIDTH) {
@@ -79,7 +76,7 @@ public final class ImageCracker {
     }
 
     /**
-     * Calcule un score global en comparant chaque paire de lignes consecutives.
+     * Calcule le score en comparant chaque paire de lignes consecutives.
      */
     private static double score(Mat image) {
         Mat gray = new Mat();

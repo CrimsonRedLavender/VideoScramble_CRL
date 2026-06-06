@@ -1,7 +1,6 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier gere l'embarquement redondant de la cle dans l'image.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
+ * Cette classe gere l'embarquement de la cle dans l'image.
  */
 
 package com.example.videoscramble;
@@ -9,11 +8,7 @@ package com.example.videoscramble;
 import org.opencv.core.Mat;
 
 /**
- * Encode et decode une cle VideoScramble dans les bits de poids faible de l'image.
- *
- * <p>Chaque bit de la cle est repete plusieurs fois dans les LSB des premiers
- * pixels. Au decodage, un vote majoritaire bit par bit permet de limiter l'effet
- * des modifications dues a la compression.</p>
+ * Encode et decode une cle dans les bits de poids faible de l'image.
  */
 public final class KeyEmbedder {
     private static final int KEY_BITS = 15;
@@ -21,15 +16,15 @@ public final class KeyEmbedder {
     private static final int MAX_BLOCK_SIZE = 10;
     private static final double DARK_VALUE = 24.0;
     private static final double LIGHT_VALUE = 232.0;
-    private static final double THRESHOLD = 128.0;
+    private static final double SEUIL = 128.0;
 
     private KeyEmbedder() {
     }
 
     /**
-     * Inscrit les 15 bits de la cle plusieurs fois dans les LSB de l'image.
+     * Ecrit les 15 bits de la cle plusieurs fois dans les LSB de l'image.
      *
-     * @param image image a modifier directement
+     * @param image image qui doit embarquer la cle
      * @param key cle a embarquer
      */
     public static void embed(Mat image, ScrambleKey key) {
@@ -37,9 +32,9 @@ public final class KeyEmbedder {
     }
 
     /**
-     * Inscrit les 15 bits de la cle avec la methode demandee.
+     * Ecrit les 15 bits de la cle.
      *
-     * @param image image a modifier directement
+     * @param image image qui doit embarquer la cle
      * @param key cle a embarquer
      * @param method methode d'embarquement utilisee
      */
@@ -48,7 +43,7 @@ public final class KeyEmbedder {
             throw new IllegalArgumentException("Image couleur requise pour embarquer une clé.");
         }
         if (method == EmbeddingMethod.LUM_BLOCKS) {
-            embedRobustBlocks(image, key);
+            embedLumBlocks(image, key);
             return;
         }
 
@@ -85,7 +80,7 @@ public final class KeyEmbedder {
             throw new IllegalArgumentException("Image couleur requise pour lire une clé embarquée.");
         }
         if (method == EmbeddingMethod.LUM_BLOCKS) {
-            return extractRobustBlocks(image);
+            return extractLumBlocks(image);
         }
 
         ensureCapacity(image);
@@ -99,14 +94,14 @@ public final class KeyEmbedder {
     }
 
     /**
-     * Regroupe {@code r} et {@code s} dans un entier de 15 bits.
+     * Regroupe une cle dans un entier de 15 bits.
      */
     private static int pack(ScrambleKey key) {
         return (key.offset() << 7) | key.step();
     }
 
     /**
-     * Reconstruit une cle depuis un entier de 15 bits.
+     * Reconstruit une cle d'un entier de 15 bits.
      */
     private static ScrambleKey unpack(int packed) {
         int offset = (packed >> 7) & 0xFF;
@@ -119,7 +114,7 @@ public final class KeyEmbedder {
      */
     private static void ensureCapacity(Mat image) {
         if ((long) image.rows() * image.cols() * image.channels() < totalStoredBits()) {
-            throw new IllegalArgumentException("Image trop petite pour embarquer une clé.");
+            throw new IllegalArgumentException("Image trop petite pour embarquer une cle.");
         }
     }
 
@@ -136,7 +131,7 @@ public final class KeyEmbedder {
     }
 
     /**
-     * Relit un bit par vote majoritaire sur toutes ses repetitions.
+     * Relit un bit par vote majoritaire.
      */
     private static int readRepeatedBit(Mat image, int bitIndex) {
         int ones = 0;
@@ -150,14 +145,14 @@ public final class KeyEmbedder {
     }
 
     /**
-     * Calcule l'indice global d'une repetition dans la zone de stockage.
+     * Calcule l'indice d'une repetition dans la zone de stockage.
      */
     private static int storedBitIndex(int bitIndex, int repetition) {
         return bitIndex * REPETITIONS_PER_BIT + repetition;
     }
 
     /**
-     * Nombre total de LSB utilises pour stocker la cle.
+     * Nombre total de LSB pour stocker la cle.
      */
     private static int totalStoredBits() {
         return KEY_BITS * REPETITIONS_PER_BIT;
@@ -176,14 +171,14 @@ public final class KeyEmbedder {
     }
 
     /**
-     * Position d'un canal dans une image OpenCV.
+     * Position d'un canal dans une image.
      */
     private record PixelChannel(int row, int col, int channel) {}
 
     /**
-     * Encode chaque bit dans un bloc clair ou sombre, robuste a la compression MP4.
+     * Encode chaque bit dans un bloc clair ou sombre.
      */
-    private static void embedRobustBlocks(Mat image, ScrambleKey key) {
+    private static void embedLumBlocks(Mat image, ScrambleKey key) {
         int blockSize = blockSizeFor(image);
         int packed = pack(key);
         for (int bitIndex = 0; bitIndex < KEY_BITS; bitIndex++) {
@@ -195,7 +190,7 @@ public final class KeyEmbedder {
     /**
      * Decode la cle depuis des blocs clairs ou sombres.
      */
-    private static ScrambleKey extractRobustBlocks(Mat image) {
+    private static ScrambleKey extractLumBlocks(Mat image) {
         int blockSize = blockSizeFor(image);
         int packed = 0;
         for (int bitIndex = 0; bitIndex < KEY_BITS; bitIndex++) {
@@ -217,7 +212,7 @@ public final class KeyEmbedder {
     }
 
     /**
-     * Ecrit un bit sous forme de bloc clair ou sombre.
+     * Ecrit un bit en bloc clair ou sombre.
      */
     private static void writeBitBlock(Mat image, int bitIndex, int blockSize, int bit) {
         double value = bit == 1 ? LIGHT_VALUE : DARK_VALUE;
@@ -235,7 +230,7 @@ public final class KeyEmbedder {
     }
 
     /**
-     * Relit un bit en comparant la luminosite moyenne du bloc a un seuil.
+     * Relit un bit en comparant la luminosite moyenne du bloc au seuil.
      */
     private static int readBitBlock(Mat image, int bitIndex, int blockSize) {
         int startCol = bitIndex * blockSize;
@@ -248,6 +243,6 @@ public final class KeyEmbedder {
                 count++;
             }
         }
-        return (sum / count) >= THRESHOLD ? 1 : 0;
+        return (sum / count) >= SEUIL ? 1 : 0;
     }
 }

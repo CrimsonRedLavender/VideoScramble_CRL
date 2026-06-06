@@ -1,11 +1,10 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier gere la lecture, le traitement et l'ecriture des videos.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
  */
 
 package com.example.videoscramble;
 
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -22,20 +21,18 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Orchestre le traitement video image par image avec OpenCV.
+ * Organose le traitement d'une video.
  */
 public final class VideoProcessor {
     private static final double MIN_FRAME_BRIGHTNESS = 3.0;
 
-    private VideoProcessor() {
-    }
 
     /**
      * Lit les dimensions d'une video et retourne les tailles de blocs qui seront
-     * utilisees par l'algorithme de permutation des lignes.
+     * utilisees pour la permutation des lignes.
      *
-     * @param input chemin de la video a inspecter
-     * @return tailles des blocs de lignes traites successivement
+     * @param input chemin de la video
+     * @return tailles des blocs de lignes
      */
     public static List<Integer> probeBlocks(Path input) {
         VideoCapture capture = new VideoCapture(input.toString());
@@ -51,14 +48,10 @@ public final class VideoProcessor {
     }
 
     /**
-     * Extrait une image utilisable pour casser la cle depuis une video.
-     *
-     * <p>Les premieres images d'une video sont parfois noires. Cette methode
-     * parcourt donc le debut de la video et conserve la premiere frame dont la
-     * luminosite moyenne depasse un seuil minimal.</p>
+     * Extrait une image pas noire pour casser la cle.
      *
      * @param input chemin de la video a analyser
-     * @return frame non noire, ou premiere frame lue si toute la video est sombre
+     * @return frame pas noire, ou premiere frame lue si toute la video est sombre
      */
     public static Mat extractRepresentativeFrame(Path input) {
         ensureReadableFile(input);
@@ -97,36 +90,18 @@ public final class VideoProcessor {
     }
 
     /**
-     * Traite une video complete en chiffrant ou dechiffrant chaque image.
+     * Traite une video.
      *
      * @param input chemin de la video source
      * @param output chemin de la video de sortie
-     * @param mode type de traitement a appliquer
+     * @param mode fonctionnalite de traitement a appliquer
      * @param key cle de chiffrement ou de dechiffrement
-     * @param onFrame callback optionnel utilise par l'IHM pour afficher l'apercu
-     * @throws IOException si le dossier de sortie ne peut pas etre cree
-     */
-    public static void processVideo(Path input,
-                                    Path output,
-                                    Mode mode,
-                                    ScrambleKey key,
-                                    BiConsumer<Mat, Mat> onFrame) throws IOException {
-        processVideo(input, output, mode, key, false, false, 0, EmbeddingMethod.LSB_MAJORITY, onFrame, null);
-    }
-
-    /**
-     * Traite une video complete avec option d'embarquement ou de lecture de cle.
-     *
-     * @param input chemin de la video source
-     * @param output chemin de la video de sortie
-     * @param mode type de traitement a appliquer
-     * @param key cle par defaut, utilisee si aucune cle embarquee n'est lue
-     * @param embedKey true pour ecrire la cle dans chaque image chiffree
-     * @param readEmbeddedKey true pour lire la cle depuis chaque image avant dechiffrement
-     * @param keyChangeInterval nombre de frames entre deux changements de cle, ou 0 pour garder la meme cle
-     * @param embeddingMethod methode utilisee pour ecrire ou lire la cle embarquee
-     * @param onFrame callback optionnel utilise par l'IHM pour afficher l'apercu
-     * @param onKey callback optionnel appele quand une cle est utilisee
+     * @param embedKey option pour ecrire la cle dans chaque frame chiffree
+     * @param readEmbeddedKey option pour lire la cle embarquee dans chaque frame
+     * @param keyChangeInterval nombre de frames entre deux changements de cle
+     * @param embeddingMethod methode pour ecrire ou lire la cle embarquee
+     * @param onFrame utilise par l'IHM pour afficher l'apercu
+     * @param onKey callback appele quand une cle est utilisee
      * @throws IOException si le dossier de sortie ne peut pas etre cree
      */
     public static void processVideo(Path input,
@@ -207,7 +182,7 @@ public final class VideoProcessor {
     }
 
     /**
-     * Verifie que le fichier d'entree existe et peut etre lu comme fichier.
+     * Verifie que le fichier d'entree existe et peut etre lu
      */
     private static void ensureReadableFile(Path input) {
         if (input == null || !Files.exists(input) || !Files.isRegularFile(input)) {
@@ -216,11 +191,11 @@ public final class VideoProcessor {
     }
 
     /**
-     * Cree le dossier parent du fichier de sortie si necessaire.
+     * Cree le dossier parent du fichier de sortie s'il n'existe pas.
      */
     private static void ensureParentDirectory(Path output) throws IOException {
         if (output == null) {
-            throw new IllegalArgumentException("Chemin de sortie requis.");
+            throw new IllegalArgumentException("Chemin du fichier de sortie est requis.");
         }
         Path parent = output.toAbsolutePath().getParent();
         if (parent != null && !Files.exists(parent)) {
@@ -229,7 +204,7 @@ public final class VideoProcessor {
     }
 
     /**
-     * Calcule une cle deterministe pour permettre un changement periodique en cours de video.
+     * Calcule une nouvelle cle pour la change en cours de video.
      */
     private static ScrambleKey scheduledKey(ScrambleKey baseKey, long frameIndex, int keyChangeInterval) {
         if (keyChangeInterval <= 0) {
@@ -243,31 +218,34 @@ public final class VideoProcessor {
     }
 
     /**
-     * Choisit un codec adapte au fichier de sortie.
+     * Choisit un codec en fonction de l'extension du fichier de sortie.
      */
     private static int fourccFor(Path output) {
         String name = output.getFileName().toString().toLowerCase();
+        if (name.endsWith(".mp4")) {
+            return VideoWriter.fourcc('m', 'p', '4', 'v');
+        }
         if (name.endsWith(".avi")) {
             return VideoWriter.fourcc('M', 'J', 'P', 'G');
         }
-        return VideoWriter.fourcc('m', 'p', '4', 'v');
+        throw new IllegalArgumentException("Extension vidéo de sortie non supportée : " + output);
     }
 
     /**
-     * Calcule la luminosite moyenne d'une image pour eviter les frames noires.
+     * Calcule le niveau de gris moyen d'une image pour eviter les frames noires.
      */
     private static double meanBrightness(Mat frame) {
         Mat gray = new Mat();
         try {
-            if (frame.channels() == 1) {
+            if (frame.channels() == 1) { // si elle n'a qu'un channel, c'est deja une image grayscale
                 gray = frame;
             } else {
                 Imgproc.cvtColor(frame, gray, Imgproc.COLOR_BGR2GRAY);
             }
-            Scalar mean = org.opencv.core.Core.mean(gray);
+            Scalar mean = Core.mean(gray); // calcul la moyenne de tous les pixels
             return mean.val[0];
         } finally {
-            if (gray != frame) {
+            if (gray != frame) { // free l'espace memoire de gray si ce n'est pas une copie de frame
                 gray.release();
             }
         }

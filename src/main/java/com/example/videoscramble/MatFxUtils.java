@@ -1,7 +1,5 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier convertit les images OpenCV pour l'affichage JavaFX.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
  */
 
 package com.example.videoscramble;
@@ -14,17 +12,17 @@ import org.opencv.imgcodecs.Imgcodecs;
 import java.io.ByteArrayInputStream;
 
 /**
- * Fonctions utilitaires pour afficher des matrices OpenCV dans JavaFX.
+ * Fonctions utilitaire pour afficher des matrices OpenCV dans JavaFX.
  */
 public final class MatFxUtils {
     private MatFxUtils() {
     }
 
     /**
-     * Convertit une matrice OpenCV en image JavaFX.
+     * Convertit une matrice en image.
      *
-     * @param mat matrice OpenCV a convertir
-     * @return image JavaFX ou {@code null} si la conversion echoue
+     * @param mat matrice OpenCV
+     * @return image JavaFX
      */
     public static Image matToImage(Mat mat) {
         if (mat == null || mat.empty()) {

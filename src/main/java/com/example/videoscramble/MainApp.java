@@ -1,7 +1,5 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier lance l'application JavaFX.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
  */
 
 package com.example.videoscramble;
@@ -13,7 +11,7 @@ import javafx.stage.Stage;
 import nu.pattern.OpenCV;
 
 /**
- * Point d'entree graphique de l'application VideoScramble.
+ * Point d'entree de l'application.
  */
 public class MainApp extends Application {
     static {
@@ -21,10 +19,10 @@ public class MainApp extends Application {
     }
 
     /**
-     * Charge l'interface principale et affiche la fenetre JavaFX.
+     * Charge l'interface et affiche la fenettre de JavaFX.
      *
-     * @param stage fenetre principale fournie par JavaFX
-     * @throws Exception si le fichier FXML ne peut pas etre charge
+     * @param stage fenettre de JavaFX
+     * @throws Exception si le FXML ne peut pas etre charge
      */
     @Override
     public void start(Stage stage) throws Exception {

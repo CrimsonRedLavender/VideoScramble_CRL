@@ -1,20 +1,18 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier represente la cle de chiffrement VideoScramble.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
  */
 
 package com.example.videoscramble;
 
 /**
- * Cle symetrique composee de l'offset {@code r} et du pas {@code s}.
+ * Cle symetrique composee de l'offset et du pas.
  *
- * @param offset decalage code sur 8 bits, entre 0 et 255
- * @param step pas code sur 7 bits, entre 0 et 127
+ * @param offset decalage (8 bits)
+ * @param step pas (7 bits)
  */
 public record ScrambleKey(int offset, int step) {
     /**
-     * Valide les bornes imposees par le sujet pour les deux composantes.
+     * Valide les valeurs de l'offset et du step.
      */
     public ScrambleKey {
         if (offset < 0 || offset > 255) {
@@ -26,7 +24,7 @@ public record ScrambleKey(int offset, int step) {
     }
 
     /**
-     * Retourne le coefficient impair {@code 2s + 1} utilise dans la permutation.
+     * Retourne le coefficient utilise dans la permutation.
      *
      * @return multiplicateur impair associe au pas
      */

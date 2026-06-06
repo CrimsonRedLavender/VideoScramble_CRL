@@ -1,7 +1,6 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier gere la lecture et l'ecriture des cles dans des fichiers texte.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
+ * Cette classe gere la lecture et l'ecriture des cles dans des fichiers texte.
  */
 
 package com.example.videoscramble;
@@ -13,19 +12,20 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Fonctions utilitaires pour lire et sauvegarder une cle VideoScramble.
+ * Fonctions pour lire et sauvegarder une cle dans un fichier texte.
  */
 public final class KeyIO {
-    private static final Pattern INTEGER_PATTERN = Pattern.compile("-?\\d+");
+    // pattern pour trouver la cle
+    private static final Pattern PATTERN = Pattern.compile("-?\\d+");
 
     private KeyIO() {
     }
 
     /**
-     * Lit une cle depuis un fichier texte contenant au moins deux entiers.
+     * Lit une cle d'un fichier text.
      *
-     * @param path chemin du fichier contenant {@code r} puis {@code s}
-     * @return cle lue dans le fichier
+     * @param path chemin du fichier
+     * @return cle lue
      * @throws IOException si le fichier ne peut pas etre lu
      */
     public static ScrambleKey read(Path path) throws IOException {
@@ -33,10 +33,10 @@ public final class KeyIO {
     }
 
     /**
-     * Ecrit une cle dans un fichier texte au format {@code r s}.
+     * Ecrit une cle dans un fichier texte.
      *
      * @param path chemin du fichier a creer ou remplacer
-     * @param key cle a sauvegarder
+     * @param key cle a ecrire
      * @throws IOException si le fichier ne peut pas etre ecrit
      */
     public static void write(Path path, ScrambleKey key) throws IOException {
@@ -44,20 +44,20 @@ public final class KeyIO {
     }
 
     /**
-     * Extrait une cle depuis un texte contenant deux entiers.
+     * Extrait la cle du fichier.
      *
-     * @param text texte contenant {@code r} puis {@code s}
-     * @return cle extraite du texte
+     * @param text texte contenant la cle
+     * @return cle extraite
      */
     public static ScrambleKey parse(String text) {
-        Matcher matcher = INTEGER_PATTERN.matcher(text == null ? "" : text);
+        Matcher matcher = PATTERN.matcher(text == null ? "" : text);
         if (!matcher.find()) {
-            throw new IllegalArgumentException("Offset r introuvable dans la cle.");
+            throw new IllegalArgumentException("Offset introuvable dans la cle.");
         }
         int offset = Integer.parseInt(matcher.group());
 
         if (!matcher.find()) {
-            throw new IllegalArgumentException("Step s introuvable dans la cle.");
+            throw new IllegalArgumentException("Step introuvable dans la cle.");
         }
         int step = Integer.parseInt(matcher.group());
 

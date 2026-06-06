@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
@@ -67,7 +68,7 @@
 
                 <HBox spacing="10">
                     <Label text="Cassage" style="-fx-font-weight: bold;"/>
-                    <Button fx:id="crackImageButton" text="Casser la clé" onAction="#crackImage"/>
+                    <Button fx:id="crackImageButton" text="Casser la clé" onAction="#keyCracker"/>
                 </HBox>
 
                 <HBox spacing="10">

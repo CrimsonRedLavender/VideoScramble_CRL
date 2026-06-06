@@ -1,7 +1,5 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier controle l'interface graphique de l'application.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
  */
 
 package com.example.videoscramble;
@@ -22,10 +20,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Controleur JavaFX de la fenetre principale.
+ * Controleur de la fenetre.
  *
- * <p>Il relie les actions de l'utilisateur aux traitements OpenCV : choix des
- * fichiers, chiffrement, dechiffrement, cassage de cle et affichage des apercus.</p>
  */
 public class MainController {
     @FXML private TextField inputField;
@@ -66,7 +62,7 @@ public class MainController {
     }
 
     /**
-     * Ouvre un selecteur pour choisir la video ou l'image source.
+     * Ouvre un selecteur pour choisir la source.
      */
     @FXML
     private void browseInput() {
@@ -110,7 +106,7 @@ public class MainController {
     }
 
     /**
-     * Lance le chiffrement de la video selectionnee.
+     * Lance le chiffrement de la video.
      */
     @FXML
     private void encrypt() {
@@ -118,7 +114,7 @@ public class MainController {
     }
 
     /**
-     * Lance le dechiffrement de la video selectionnee.
+     * Lance le dechiffrement de la video.
      */
     @FXML
     private void decrypt() {
@@ -126,24 +122,24 @@ public class MainController {
     }
 
     /**
-     * Cherche la cle d'une image ou d'une video chiffree par force brute.
+     * Cherche la cle par brute force.
      */
     @FXML
-    private void crackImage() {
-        Path input = requiredPath(inputField.getText(), "Choisis la vidéo chiffrée.");
+    private void keyCracker() {
+        Path input = requiredPath(inputField.getText(), "Choisis la vidéo chiffree.");
         Path output = optionalPath(outputField.getText());
         disableActions(true);
 
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
-                updateMessage("Lecture de l'image de référence depuis la vidéo...");
+                updateMessage("Lecture de l'image de réféfrence depuis la vidéo...");
                 Mat scrambled = readCrackFrame(input);
                 Platform.runLater(() -> sourceView.setImage(MatFxUtils.matToImage(scrambled)));
 
                 updateMessage("Brute force en cours...");
                 long start = System.nanoTime();
-                ImageCracker.CrackResult result = ImageCracker.crack(scrambled);
+                KeyCracker.CrackResult result = KeyCracker.crack(scrambled);
                 long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
                 Platform.runLater(() -> {
@@ -162,7 +158,7 @@ public class MainController {
                 }
                 scrambled.release();
                 result.image().release();
-                updateMessage("Cassure terminée en " + elapsedMillis + " ms.");
+                updateMessage("Cassage terminé en " + elapsedMillis + " ms.");
                 return null;
             }
         };
@@ -170,7 +166,7 @@ public class MainController {
     }
 
     /**
-     * Enregistre la cle actuellement saisie dans un fichier texte.
+     * Enregistre la cle dans un fichier texte.
      */
     @FXML
     private void saveKeyToText() {
@@ -191,7 +187,7 @@ public class MainController {
     }
 
     /**
-     * Charge une cle depuis un fichier texte et remplit les champs de l'IHM.
+     * Charge une cle d'un fichier texte.
      */
     @FXML
     private void loadKeyFromText() {
@@ -226,7 +222,7 @@ public class MainController {
     }
 
     /**
-     * Prepare et lance une tache de traitement video en arriere-plan.
+     * Lance une tache de traitement video.
      */
     private void launchVideoTask(Mode mode) {
         Path input = requiredPath(inputField.getText(), "Choisis la vidéo d'entrée.");
@@ -281,7 +277,7 @@ public class MainController {
     }
 
     /**
-     * Branche une tache JavaFX sur le label de statut et la demarre.
+     * Lie une tache sur le statut et la lance.
      */
     private void bindAndRun(Task<Void> task) {
         statusLabel.textProperty().bind(task.messageProperty());
@@ -305,7 +301,7 @@ public class MainController {
     }
 
     /**
-     * Active ou desactive les actions longues pendant un traitement.
+     * Active ou desactive les actions pendant un traitement.
      */
     private void disableActions(boolean disabled) {
         encryptButton.setDisable(disabled);
@@ -314,7 +310,7 @@ public class MainController {
     }
 
     /**
-     * Construit une cle a partir des champs de saisie.
+     * Cree une cle a partir des champs de saisie.
      */
     private ScrambleKey readKey() {
         int offset = Integer.parseInt(offsetField.getText().trim());
@@ -323,12 +319,12 @@ public class MainController {
     }
 
     /**
-     * Lit l'intervalle de changement de cle depuis l'IHM.
+     * Lit l'intervalle de changement de cle.
      */
     private int readKeyChangeInterval() {
         int interval = Integer.parseInt(keyChangeIntervalField.getText().trim());
         if (interval <= 0) {
-            throw new IllegalArgumentException("L'intervalle de changement de clé doit être positif.");
+            throw new IllegalArgumentException("L'intervalle de changement doit être positif.");
         }
         return interval;
     }
@@ -351,7 +347,7 @@ public class MainController {
     }
 
     /**
-     * Determine si le fichier choisi semble etre une video selon son extension.
+     * Determine si le fichier choisi est une video selon son extension.
      */
     private boolean isVideoFile(Path path) {
         String name = path.getFileName().toString().toLowerCase();
@@ -359,7 +355,7 @@ public class MainController {
     }
 
     /**
-     * Determine si le fichier choisi semble etre une image selon son extension.
+     * Determine si le fichier choisi est une image selon son extension.
      */
     private boolean isImageFile(Path path) {
         String name = path.getFileName().toString().toLowerCase();
@@ -367,7 +363,7 @@ public class MainController {
     }
 
     /**
-     * Verifie que la sortie du cassage est bien une image ecrivable par OpenCV.
+     * Verifie que la sortie du cassage est bien une image.
      */
     private void ensureImageOutput(Path output) {
         if (!isImageFile(output)) {
@@ -376,7 +372,7 @@ public class MainController {
     }
 
     /**
-     * Lit directement une image ou extrait une frame exploitable depuis une video.
+     * Lit une image ou une frame d'une video.
      */
     private Mat readCrackFrame(Path input) {
         if (isVideoFile(input)) {
@@ -391,7 +387,7 @@ public class MainController {
     }
 
     /**
-     * Cree le dossier parent d'un fichier si celui-ci n'existe pas encore.
+     * Cree le dossier parent d'un fichier si celui-ci n'existe pas.
      */
     private void ensureParent(Path path) throws IOException {
         Path parent = path.toAbsolutePath().getParent();
@@ -401,14 +397,14 @@ public class MainController {
     }
 
     /**
-     * Retourne la fenetre JavaFX courante pour ouvrir les boites de dialogue.
+     * Retourne la fenetre courante pour ouvrir les boites de dialogue.
      */
     private Window window() {
         return inputField.getScene() == null ? null : inputField.getScene().getWindow();
     }
 
     /**
-     * Affiche un message d'etat dans l'interface.
+     * Affiche un message de status dans l'interface.
      */
     private void status(String text) {
         statusLabel.textProperty().unbind();

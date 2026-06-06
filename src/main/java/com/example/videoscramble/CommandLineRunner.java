@@ -1,7 +1,5 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier contient le mode ligne de commande de l'application.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
  */
 
 package com.example.videoscramble;
@@ -13,26 +11,26 @@ import org.opencv.imgcodecs.Imgcodecs;
 import java.nio.file.Path;
 
 /**
- * Execute les traitements demandes en ligne de commande.
+ * Execute l'application en ligne de commande.
  */
 public final class CommandLineRunner {
     private CommandLineRunner() {
     }
 
     /**
-     * Analyse les arguments et lance la commande correspondante.
+     * Lance la commande correspondante à l'argument.
      *
-     * @param args arguments passes au programme
-     * @return code de sortie conventionnel, {@code 0} en cas de succes
-     * @throws Exception si le traitement demande echoue
+     * @param args arguments
+     * @return code de sortie
+     * @throws Exception si le traitement de la commande echoue
      */
     public static int run(String[] args) throws Exception {
         if (args.length == 0 || "gui".equalsIgnoreCase(args[0])) {
             return -1;
         }
 
-        String command = args[0].toLowerCase();
-        return switch (command) {
+        String functionality = args[0].toLowerCase();
+        return switch (functionality) {
             case "encrypt" -> processVideo(args, Mode.ENCRYPT);
             case "decrypt" -> processVideo(args, Mode.DECRYPT);
             case "crack" -> crack(args);
@@ -114,7 +112,7 @@ public final class CommandLineRunner {
     }
 
     /**
-     * Cherche la cle d'une image ou d'une video chiffree.
+     * Cherche la cle d'une video chiffree.
      */
     private static int crack(String[] args) {
         if (args.length < 2) {
@@ -128,7 +126,7 @@ public final class CommandLineRunner {
         Mat scrambled = readCrackFrame(input);
         try {
             long start = System.nanoTime();
-            ImageCracker.CrackResult result = ImageCracker.crack(scrambled);
+            KeyCracker.CrackResult result = KeyCracker.crack(scrambled);
             long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
             try {

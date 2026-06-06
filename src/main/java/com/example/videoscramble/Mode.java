@@ -1,18 +1,14 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier definit les modes de traitement video.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
  */
 
 package com.example.videoscramble;
 
 /**
- * Mode de traitement applique a une video.
+ * Mode chiffrement/dechiffrement.
  */
 public enum Mode {
-    /** Chiffrement par permutation directe des lignes. */
     ENCRYPT,
 
-    /** Dechiffrement par permutation inverse des lignes. */
     DECRYPT
 }

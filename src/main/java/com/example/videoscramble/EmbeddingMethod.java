@@ -1,18 +1,16 @@
-/*
- * Projet VideoScramble_CRL
- * Programmation multimedia - JavaFX / OpenCV
- * Ce fichier definit les methodes d'embarquement de cle.
+/* Aurélie AZONNOUDO, Cassandre MATHIOT
+ * BUT 3 Alternants
  */
 
 package com.example.videoscramble;
 
 /**
- * Methode utilisee pour stocker une cle dans chaque image chiffree.
+ * Methodes possibles pour stocker une cle dans chaque image.
  */
 public enum EmbeddingMethod {
-    /** Methode proche de l'enonce : bits faibles repetes avec vote majoritaire. */
+    /** Methode utilisants les bits de poid faible et vote majoritaire. */
     LSB_MAJORITY,
 
-    /** Methode plus visible mais robuste avec le codec MP4 disponible en demonstration. */
+    /** Methode blocs pixels sombres/clairs. */
     LUM_BLOCKS
 }
