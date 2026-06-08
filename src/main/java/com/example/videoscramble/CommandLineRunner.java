@@ -247,7 +247,7 @@ public final class CommandLineRunner {
     private static boolean isVideoFile(Path path) {
         // Detection simple par extension, suffisante pour choisir la methode de lecture.
         String name = path.getFileName().toString().toLowerCase();
-        return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov") || name.endsWith(".mkv");
+        return name.endsWith(".mp4") || name.endsWith(".m4v") || name.endsWith(".avi") || name.endsWith(".mov") || name.endsWith(".mkv");
     }
 
     /**

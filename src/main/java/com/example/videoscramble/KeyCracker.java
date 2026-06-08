@@ -103,13 +103,13 @@ public final class KeyCracker {
         double total = 0.0;
         for (int row = 0; row < gray.rows() - 1; row++) {
             // Deux lignes consecutives naturelles doivent etre proches visuellement.
-            double[] a = new double[gray.cols()];
-            double[] b = new double[gray.cols()];
-            gray.get(row, 0, a);
-            gray.get(row + 1, 0, b);
+            double[] lineA = new double[gray.cols()];
+            double[] lineB = new double[gray.cols()];
+            gray.get(row, 0, lineA);
+            gray.get(row + 1, 0, lineB);
 
             // On maximise le score, donc une petite distance devient une grande valeur negative.
-            total += -euclidean(a, b);
+            total += -euclidean(lineA, lineB);
         }
         gray.release();
         return total;
@@ -118,11 +118,11 @@ public final class KeyCracker {
     /**
      * Calcule la distance euclidienne entre deux lignes en niveaux de gris.
      */
-    private static double euclidean(double[] a, double[] b) {
+    private static double euclidean(double[] lineA, double[] lineB) {
         double sum = 0.0;
-        for (int i = 0; i < a.length; i++) {
+        for (int i = 0; i < lineA.length; i++) {
             // Somme des carres des ecarts pixel par pixel.
-            double d = a[i] - b[i];
+            double d = lineA[i] - lineB[i];
             sum += d * d;
         }
         return Math.sqrt(sum);

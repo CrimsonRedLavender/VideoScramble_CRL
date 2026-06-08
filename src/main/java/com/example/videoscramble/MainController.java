@@ -75,7 +75,7 @@ public class MainController {
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Choisir le fichier d'entrée");
         chooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Vidéos / images", "*.mp4", "*.avi", "*.mov", "*.mkv", "*.png", "*.jpg", "*.jpeg", "*.bmp"),
+                new FileChooser.ExtensionFilter("Vidéos / images", "*.mp4", "*.avi", "*.mov", "*.mkv", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.m4v"),
                 new FileChooser.ExtensionFilter("Tous les fichiers", "*.*")
         );
         java.io.File file = chooser.showOpenDialog(window());
@@ -105,6 +105,7 @@ public class MainController {
         chooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("MP4", "*.mp4"),
                 new FileChooser.ExtensionFilter("AVI sans perte", "*.avi"),
+                new FileChooser.ExtensionFilter("M4V", "*.m4v"),
                 new FileChooser.ExtensionFilter("PNG", "*.png"),
                 new FileChooser.ExtensionFilter("Tous les fichiers", "*.*")
         );
@@ -390,7 +391,7 @@ public class MainController {
     private boolean isVideoFile(Path path) {
         // Detection volontairement basee sur l'extension pour rester simple.
         String name = path.getFileName().toString().toLowerCase();
-        return name.endsWith(".mp4") || name.endsWith(".avi") || name.endsWith(".mov") || name.endsWith(".mkv");
+        return name.endsWith(".mp4") || name.endsWith(".m4v") || name.endsWith(".avi") || name.endsWith(".mov") || name.endsWith(".mkv");
     }
 
     /**
