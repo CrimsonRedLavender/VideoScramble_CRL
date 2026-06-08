@@ -8,7 +8,7 @@ package com.example.videoscramble;
  * Cle symetrique composee de l'offset et du pas.
  *
  * @param offset decalage (8 bits)
- * @param step pas (7 bits)
+ * @param step   pas (7 bits)
  */
 public record ScrambleKey(int offset, int step) {
     /**

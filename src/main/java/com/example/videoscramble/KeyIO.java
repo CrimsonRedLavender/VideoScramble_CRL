@@ -29,6 +29,7 @@ public final class KeyIO {
      * @throws IOException si le fichier ne peut pas etre lu
      */
     public static ScrambleKey read(Path path) throws IOException {
+        // Le fichier entier est lu puis confie au parseur commun.
         return parse(Files.readString(path));
     }
 
@@ -40,6 +41,7 @@ public final class KeyIO {
      * @throws IOException si le fichier ne peut pas etre ecrit
      */
     public static void write(Path path, ScrambleKey key) throws IOException {
+        // Format volontairement simple : deux nombres separes par un espace, r puis s.
         Files.writeString(path, key.offset() + " " + key.step());
     }
 
@@ -50,17 +52,23 @@ public final class KeyIO {
      * @return cle extraite
      */
     public static ScrambleKey parse(String text) {
+        // Le parseur accepte n'importe quel texte contenant au moins deux entiers.
         Matcher matcher = PATTERN.matcher(text == null ? "" : text);
         if (!matcher.find()) {
             throw new IllegalArgumentException("Offset introuvable dans la cle.");
         }
+
+        // Premier entier trouve : offset r.
         int offset = Integer.parseInt(matcher.group());
 
         if (!matcher.find()) {
             throw new IllegalArgumentException("Step introuvable dans la cle.");
         }
+
+        // Deuxieme entier trouve : step s.
         int step = Integer.parseInt(matcher.group());
 
+        // ScrambleKey valide les bornes de r et s.
         return new ScrambleKey(offset, step);
     }
 }

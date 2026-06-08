@@ -21,7 +21,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Organose le traitement d'une video.
+ * Organise le traitement d'une video.
  */
 public final class VideoProcessor {
     private static final double MIN_FRAME_BRIGHTNESS = 3.0;
@@ -35,11 +35,13 @@ public final class VideoProcessor {
      * @return tailles des blocs de lignes
      */
     public static List<Integer> probeBlocks(Path input) {
+        // Ouvre rapidement la video uniquement pour connaitre sa hauteur.
         VideoCapture capture = new VideoCapture(input.toString());
         if (!capture.isOpened()) {
             throw new IllegalArgumentException("Impossible d'ouvrir la vidéo : " + input);
         }
         try {
+            // La hauteur determine les blocs de puissances de 2 utilises par LineScrambler.
             int height = (int) capture.get(Videoio.CAP_PROP_FRAME_HEIGHT);
             return LineScrambler.blockSizes(height);
         } finally {
@@ -55,6 +57,8 @@ public final class VideoProcessor {
      */
     public static Mat extractRepresentativeFrame(Path input) {
         ensureReadableFile(input);
+
+        // On lit la video avec OpenCV pour chercher une frame exploitable par le crack.
         VideoCapture capture = new VideoCapture(input.toString());
         if (!capture.isOpened()) {
             throw new IllegalArgumentException("Impossible d'ouvrir la vidéo : " + input);
@@ -67,9 +71,13 @@ public final class VideoProcessor {
                 if (frame.empty()) {
                     continue;
                 }
+
+                // On garde la premiere frame lue au cas ou toute la video serait sombre.
                 if (fallback == null) {
                     fallback = frame.clone();
                 }
+
+                // Des qu'une frame est suffisamment lumineuse, elle devient la frame de reference.
                 if (meanBrightness(frame) >= MIN_FRAME_BRIGHTNESS) {
                     Mat selected = frame.clone();
                     if (fallback != null) {
@@ -83,6 +91,7 @@ public final class VideoProcessor {
             capture.release();
         }
 
+        // Si aucune frame lumineuse n'a ete trouvee, on retourne au moins une frame lisible.
         if (fallback != null) {
             return fallback;
         }
@@ -114,14 +123,17 @@ public final class VideoProcessor {
                                     EmbeddingMethod embeddingMethod,
                                     BiConsumer<Mat, Mat> onFrame,
                                     Consumer<ScrambleKey> onKey) throws IOException {
+        // On valide les chemins avant de creer les objets OpenCV, pour avoir des erreurs claires.
         ensureReadableFile(input);
         ensureParentDirectory(output);
 
+        // VideoCapture lit la video source frame par frame.
         VideoCapture capture = new VideoCapture(input.toString());
         if (!capture.isOpened()) {
             throw new IllegalArgumentException("Impossible d'ouvrir la vidéo : " + input);
         }
 
+        // Les dimensions et le FPS de sortie doivent rester coherents avec la video source.
         int width = (int) capture.get(Videoio.CAP_PROP_FRAME_WIDTH);
         int height = (int) capture.get(Videoio.CAP_PROP_FRAME_HEIGHT);
         double fps = capture.get(Videoio.CAP_PROP_FPS);
@@ -129,6 +141,7 @@ public final class VideoProcessor {
             fps = 25.0;
         }
 
+        // VideoWriter encode la video resultante avec un codec choisi selon l'extension.
         VideoWriter writer = new VideoWriter(
                 output.toString(),
                 fourccFor(output),
@@ -148,12 +161,17 @@ public final class VideoProcessor {
                 if (frame.empty()) {
                     continue;
                 }
+
+                // La cle peut rester fixe ou changer selon l'intervalle choisi.
                 ScrambleKey scheduledKey = scheduledKey(key, frameIndex, keyChangeInterval);
+
+                // En mode embedded, la cle de dechiffrement vient directement de la frame courante.
                 ScrambleKey frameKey = mode == Mode.DECRYPT && readEmbeddedKey ? KeyEmbedder.extract(frame, embeddingMethod) : scheduledKey;
                 if (onKey != null) {
                     onKey.accept(frameKey);
                 }
 
+                // On applique le traitement ligne par ligne selon le mode demande.
                 Mat processed = mode == Mode.ENCRYPT
                         ? LineScrambler.scramble(frame, frameKey)
                         : LineScrambler.unscramble(frame, frameKey);
@@ -162,14 +180,17 @@ public final class VideoProcessor {
                     continue;
                 }
 
+                // La cle est embarquee apres chiffrement, pour que la frame stockee la contienne.
                 if (mode == Mode.ENCRYPT && embedKey) {
                     KeyEmbedder.embed(processed, frameKey, embeddingMethod);
                 }
 
+                // L'IHM recoit des clones car les Mat locales seront liberees ensuite.
                 if (onFrame != null) {
                     onFrame.accept(frame.clone(), processed.clone());
                 }
 
+                // Ecriture de la frame finale dans la video de sortie.
                 writer.write(processed);
                 processed.release();
                 frameIndex++;
@@ -185,6 +206,7 @@ public final class VideoProcessor {
      * Verifie que le fichier d'entree existe et peut etre lu
      */
     private static void ensureReadableFile(Path input) {
+        // OpenCV echoue avec des messages peu explicites si le fichier source n'existe pas.
         if (input == null || !Files.exists(input) || !Files.isRegularFile(input)) {
             throw new IllegalArgumentException("Fichier d'entrée introuvable : " + input);
         }
@@ -197,6 +219,8 @@ public final class VideoProcessor {
         if (output == null) {
             throw new IllegalArgumentException("Chemin du fichier de sortie est requis.");
         }
+
+        // Permet d'ecrire vers un dossier qui n'existe pas encore.
         Path parent = output.toAbsolutePath().getParent();
         if (parent != null && !Files.exists(parent)) {
             Files.createDirectories(parent);
@@ -207,13 +231,17 @@ public final class VideoProcessor {
      * Calcule une nouvelle cle pour la change en cours de video.
      */
     private static ScrambleKey scheduledKey(ScrambleKey baseKey, long frameIndex, int keyChangeInterval) {
-        if (keyChangeInterval <= 0) {
+        if (keyChangeInterval <= 0) { // cas où le changement de clé n’est pas activé
+
             return baseKey;
         }
 
-        long group = frameIndex / keyChangeInterval;
+        long group = frameIndex / keyChangeInterval; // calcul dans quel groupe de frames la frame est
+
+        // Suites déterministes pour faire varier la clé
         int offset = (int) ((baseKey.offset() + 73L * group) % 256);
         int step = (int) ((baseKey.step() + 37L * group) % 128);
+
         return new ScrambleKey(offset, step);
     }
 
@@ -222,9 +250,11 @@ public final class VideoProcessor {
      */
     private static int fourccFor(Path output) {
         String name = output.getFileName().toString().toLowerCase();
+
         if (name.endsWith(".mp4")) {
             return VideoWriter.fourcc('m', 'p', '4', 'v');
         }
+
         if (name.endsWith(".avi")) {
             return VideoWriter.fourcc('M', 'J', 'P', 'G');
         }

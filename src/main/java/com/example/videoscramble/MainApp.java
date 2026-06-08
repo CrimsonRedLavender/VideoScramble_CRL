@@ -15,6 +15,7 @@ import nu.pattern.OpenCV;
  */
 public class MainApp extends Application {
     static {
+        // Charge la bibliotheque native OpenCV avant toute manipulation de Mat ou VideoCapture.
         OpenCV.loadLocally();
     }
 
@@ -26,8 +27,11 @@ public class MainApp extends Application {
      */
     @Override
     public void start(Stage stage) throws Exception {
+        // Le fichier FXML decrit toute l'interface ; le controleur est declare dedans.
         FXMLLoader loader = new FXMLLoader(MainApp.class.getResource("/com/example/videoscramble/main-view.fxml"));
         Scene scene = new Scene(loader.load(), 1280, 780);
+
+        // Configuration minimale de la fenetre principale JavaFX.
         stage.setTitle("VideoScramble - JavaFX + OpenCV");
         stage.setScene(scene);
         stage.show();
@@ -40,15 +44,19 @@ public class MainApp extends Application {
      */
     public static void main(String[] args) {
         try {
+            // Si des arguments CLI sont fournis, ils sont traites sans ouvrir l'interface graphique.
             int exitCode = CommandLineRunner.run(args);
             if (exitCode >= 0) {
                 System.exit(exitCode);
             }
         } catch (Exception e) {
+            // Les erreurs CLI sont affichees dans le terminal avec l'aide des commandes disponibles.
             System.err.println("Erreur : " + e.getMessage());
             CommandLineRunner.printUsage();
             System.exit(1);
         }
+
+        // Aucun mode CLI reconnu : on demarre l'application JavaFX classique.
         launch(args);
     }
 }
