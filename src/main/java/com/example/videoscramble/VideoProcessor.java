@@ -274,11 +274,11 @@ public final class VideoProcessor {
         String name = output.getFileName().toString().toLowerCase();
 
         if (name.endsWith(".mp4")) {
-            return VideoWriter.fourcc('F', 'F', 'V', '1');
+            return VideoWriter.fourcc('H', '2', '6', '4');
         }
 
         if (name.endsWith(".m4v")) {
-            return VideoWriter.fourcc('F', 'F', 'V', '1');
+            return VideoWriter.fourcc('H', '2', '6', '4');
         }
 
         if (name.endsWith(".avi")) {

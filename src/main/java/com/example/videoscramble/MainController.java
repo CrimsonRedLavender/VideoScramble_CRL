@@ -37,6 +37,7 @@ public class MainController {
     @FXML private CheckBox embedKeyCheckBox;
     @FXML private CheckBox readEmbeddedKeyCheckBox;
     @FXML private ComboBox<EmbeddingMethod> embeddingMethodCombo;
+    @FXML private ComboBox<ScoreMethod> scoreMethodCombo;
     @FXML private CheckBox changeKeyCheckBox;
     @FXML private TextField keyChangeIntervalField;
     @FXML private TextField keyScheduleField;
@@ -61,6 +62,8 @@ public class MainController {
         // La methode robuste est choisie par defaut car elle fonctionne avec le codec MP4 de demo.
         embeddingMethodCombo.getItems().setAll(EmbeddingMethod.values());
         embeddingMethodCombo.setValue(EmbeddingMethod.LUM_BLOCKS);
+        scoreMethodCombo.getItems().setAll(ScoreMethod.values());
+        scoreMethodCombo.setValue(ScoreMethod.EUCLIDEAN);
         changeKeyCheckBox.setSelected(false);
         keyChangeIntervalField.setText("100");
         status("Prêt.");
@@ -167,7 +170,7 @@ public class MainController {
 
                 updateMessage("Brute force en cours...");
                 long start = System.nanoTime();
-                KeyCracker.CrackResult result = KeyCracker.crack(scrambled);
+                KeyCracker.CrackResult result = KeyCracker.crack(scrambled, scoreMethodCombo.getValue());
                 double elapsedSeconds = secondsSince(start);
 
                 // Affiche l'image reconstruite et les informations utiles pour la demonstration.

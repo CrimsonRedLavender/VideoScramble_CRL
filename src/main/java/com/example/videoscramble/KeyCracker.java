@@ -34,6 +34,17 @@ public final class KeyCracker {
      * @return CrackResult (meilleure cle trouvee + l'image decryptee)
      */
     public static CrackResult crack(Mat scrambled) {
+        return crack(scrambled, ScoreMethod.EUCLIDEAN);
+    }
+
+    /**
+     * Teste toutes les cles avec la methode de score demandee.
+     *
+     * @param scrambled image a dechiffre
+     * @param method methode de score utilisee
+     * @return CrackResult (meilleure cle trouvee + l'image decryptee)
+     */
+    public static CrackResult crack(Mat scrambled, ScoreMethod method) {
         // L'image de score peut etre reduite en largeur pour accelerer le brute force.
         Mat scoringImage = resizeForScoring(scrambled);
         ScrambleKey bestKey = null;
@@ -47,7 +58,7 @@ public final class KeyCracker {
 
                     // On dechiffre avec la cle candidate puis on mesure la coherence des lignes.
                     Mat candidate = LineScrambler.unscramble(scoringImage, key);
-                    double score = score(candidate);
+                    double score = score(candidate, method);
                     if (score > bestScore) {
                         bestScore = score;
                         bestKey = key;
@@ -70,15 +81,15 @@ public final class KeyCracker {
     }
 
     /**
-     * Reduitla taille de l'image pour accelerer la recherche de la cle.
+     * Reduit la taille de l'image pour accelerer la recherche de la cle
      */
     private static Mat resizeForScoring(Mat image) {
-        // Les petites images sont deja assez rapides a analyser.
+        //les petites images sont deja assez rapides a analyser
         if (image.cols() <= MAX_SCORING_WIDTH) {
             return image;
         }
 
-        // La hauteur doit rester identique, car la permutation depend des blocs de lignes.
+        //la hauteur reste identique
         Mat resized = new Mat();
         Imgproc.resize(image, resized, new Size(MAX_SCORING_WIDTH, image.rows()), 0, 0, Imgproc.INTER_AREA);
         return resized;
@@ -87,7 +98,7 @@ public final class KeyCracker {
     /**
      * Calcule le score en comparant chaque paire de lignes consecutives.
      */
-    private static double score(Mat image) {
+    private static double score(Mat image, ScoreMethod method) {
         // Le score travaille sur un seul canal pour comparer les lignes plus simplement.
         Mat gray = new Mat();
         if (image.channels() == 1) {
@@ -101,6 +112,7 @@ public final class KeyCracker {
         }
 
         double total = 0.0;
+        int comparisons = 0;
         for (int row = 0; row < gray.rows() - 1; row++) {
             // Deux lignes consecutives naturelles doivent etre proches visuellement.
             double[] lineA = new double[gray.cols()];
@@ -108,11 +120,17 @@ public final class KeyCracker {
             gray.get(row, 0, lineA);
             gray.get(row + 1, 0, lineB);
 
-            // On maximise le score, donc une petite distance devient une grande valeur negative.
-            total += -euclidean(lineA, lineB);
+            if (method == ScoreMethod.PEARSON) {
+                // Pearson est deja un score a maximiser : proche de 1 signifie lignes similaires.
+                total += pearson(lineA, lineB);
+            } else {
+                // On maximise le score, donc une petite distance devient une grande valeur negative.
+                total += -euclidean(lineA, lineB);
+            }
+            comparisons++;
         }
         gray.release();
-        return total;
+        return comparisons == 0 ? 0.0 : total / comparisons;
     }
 
     /**
@@ -126,6 +144,42 @@ public final class KeyCracker {
             sum += d * d;
         }
         return Math.sqrt(sum);
+    }
+
+    /**
+     * Calcule la correlation de Pearson entre deux lignes en niveaux de gris.
+     */
+    private static double pearson(double[] lineA, double[] lineB) {
+        double meanA = mean(lineA);
+        double meanB = mean(lineB);
+        double numerator = 0.0;
+        double varianceA = 0.0;
+        double varianceB = 0.0;
+
+        for (int i = 0; i < lineA.length; i++) {
+            double centeredA = lineA[i] - meanA;
+            double centeredB = lineB[i] - meanB;
+            numerator += centeredA * centeredB;
+            varianceA += centeredA * centeredA;
+            varianceB += centeredB * centeredB;
+        }
+
+        double denominator = Math.sqrt(varianceA) * Math.sqrt(varianceB);
+        if (denominator == 0.0) {
+            return 0.0;
+        }
+        return numerator / denominator;
+    }
+
+    /**
+     * Calcule la moyenne d'une ligne en niveaux de gris.
+     */
+    private static double mean(double[] line) {
+        double total = 0.0;
+        for (double value : line) {
+            total += value;
+        }
+        return total / line.length;
     }
 
 }

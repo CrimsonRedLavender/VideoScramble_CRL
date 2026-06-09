@@ -26,12 +26,11 @@ public final class CommandLineRunner {
      * @throws Exception si le traitement de la commande echoue
      */
     public static int run(String[] args) throws Exception {
-        // Aucun argument, ou "gui", signifie que MainApp doit lancer JavaFX.
+        // Aucun argument ou "gui" = lancer JavaFX.
         if (args.length == 0 || "gui".equalsIgnoreCase(args[0])) {
             return -1;
         }
 
-        // Le premier argument choisit la fonctionnalite executee en terminal.
         String functionality = args[0].toLowerCase();
         return switch (functionality) {
             case "encrypt" -> processVideo(args, Mode.ENCRYPT);
@@ -54,7 +53,6 @@ public final class CommandLineRunner {
      * Affiche l'aide du mode ligne de commande.
      */
     public static void printUsage() {
-        // Aide volontairement exhaustive pour rappeler les combinaisons d'options possibles.
         System.out.println("Usage :");
         System.out.println("  java ... MainApp gui");
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> <r> <s>");
@@ -68,6 +66,7 @@ public final class CommandLineRunner {
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> --key-file <fichier>");
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --key-file <fichier>");
         System.out.println("  java ... MainApp crack <image-ou-video> [sortie-image]");
+        System.out.println("  Option score cassage : --score EUCLIDEAN|PEARSON");
         System.out.println("  java ... MainApp validate-image <image> <r> <s>");
         System.out.println("  java ... MainApp validate-image <image> --key-file <fichier>");
     }
@@ -76,13 +75,13 @@ public final class CommandLineRunner {
      * Lance le chiffrement ou le dechiffrement d'une video.
      */
     private static int processVideo(String[] args, Mode mode) throws Exception {
-        // Cas special : en dechiffrement, la cle peut etre relue depuis la video elle-meme.
+        //en dechiffrement, la cle peut etre relue depuis la video elle-meme
         if (mode == Mode.DECRYPT && hasFlag(args, "--embedded-key")) {
             long start = System.nanoTime();
             Path input = Path.of(args[1]);
             Path output = Path.of(args[2]);
 
-            // Tableau d'une case pour memoriser la derniere cle affichee depuis la lambda.
+            // memoriser la derniere cle affichee
             ScrambleKey[] lastPrintedKey = new ScrambleKey[1];
             EmbeddingMethod embeddingMethod = embeddingMethodOption(args);
 
@@ -103,7 +102,6 @@ public final class CommandLineRunner {
         Path keySchedulePath = pathOption(args, "--keys-file");
         boolean useKeySchedule = mode == Mode.DECRYPT && keySchedulePath != null;
 
-        // Les modes classiques ont besoin de : commande, entree, sortie, r, s.
         if (!useKeySchedule && args.length < 5) {
             printUsage();
             return 2;
@@ -154,13 +152,14 @@ public final class CommandLineRunner {
         }
 
         Path input = Path.of(args[1]);
-        Path output = args.length >= 3 ? Path.of(args[2]) : null;
+        Path output = args.length >= 3 && !args[2].startsWith("--") ? Path.of(args[2]) : null;
+        ScoreMethod scoreMethod = scoreMethodOption(args);
 
         // On accepte soit une image deja extraite, soit une video dont on extrait une frame.
         Mat scrambled = readCrackFrame(input);
         try {
             long start = System.nanoTime();
-            KeyCracker.CrackResult result = KeyCracker.crack(scrambled);
+            KeyCracker.CrackResult result = KeyCracker.crack(scrambled, scoreMethod);
             double elapsedSeconds = secondsSince(start);
 
             try {
@@ -172,6 +171,7 @@ public final class CommandLineRunner {
                     }
                 }
                 System.out.println("Cle trouvee : " + result.key());
+                System.out.println("Methode score : " + scoreMethod);
                 System.out.println("Score : " + result.score());
                 System.out.println("Temps : " + formatSeconds(elapsedSeconds) + " s");
                 if (output != null) {
@@ -378,5 +378,20 @@ public final class CommandLineRunner {
 
         // Methode robuste par defaut, adaptee aux videos MP4 de demonstration.
         return EmbeddingMethod.LUM_BLOCKS;
+    }
+
+    /**
+     * Lit la methode de score demandee pour le cassage de cle.
+     */
+    private static ScoreMethod scoreMethodOption(String[] args) {
+        for (int i = 0; i < args.length; i++) {
+            if ("--score".equalsIgnoreCase(args[i])) {
+                if (i + 1 >= args.length) {
+                    throw new IllegalArgumentException("Valeur manquante pour --score");
+                }
+                return ScoreMethod.valueOf(args[i + 1].toUpperCase());
+            }
+        }
+        return ScoreMethod.EUCLIDEAN;
     }
 }

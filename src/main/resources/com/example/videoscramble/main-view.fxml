@@ -71,6 +71,8 @@
                 <HBox spacing="10">
                     <Label text="Cassage" style="-fx-font-weight: bold;"/>
                     <Button fx:id="crackImageButton" text="Casser la clé" onAction="#keyCracker"/>
+                    <Label text="Score"/>
+                    <ComboBox fx:id="scoreMethodCombo" prefWidth="130"/>
                 </HBox>
 
                 <HBox spacing="10">
