@@ -9,6 +9,7 @@ import org.opencv.core.Mat;
 import org.opencv.imgcodecs.Imgcodecs;
 
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Execute l'application en ligne de commande.
@@ -61,7 +62,8 @@ public final class CommandLineRunner {
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> <r> <s> --embed-key");
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --embedded-key");
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> <r> <s> --change-key-every <frames> --embed-key");
-        System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> <r> <s> --change-key-every <frames>");
+        System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --keys-file <fichier>");
+        System.out.println("  Option liste de cles : --keys-file <fichier>");
         System.out.println("  Option embarquement : --embedding LSB_MAJORITY|ROBUST_BLOCKS");
         System.out.println("  java ... MainApp encrypt <entree-video> <sortie-video> --key-file <fichier>");
         System.out.println("  java ... MainApp decrypt <entree-video> <sortie-video> --key-file <fichier>");
@@ -76,6 +78,7 @@ public final class CommandLineRunner {
     private static int processVideo(String[] args, Mode mode) throws Exception {
         // Cas special : en dechiffrement, la cle peut etre relue depuis la video elle-meme.
         if (mode == Mode.DECRYPT && hasFlag(args, "--embedded-key")) {
+            long start = System.nanoTime();
             Path input = Path.of(args[1]);
             Path output = Path.of(args[2]);
 
@@ -84,7 +87,7 @@ public final class CommandLineRunner {
             EmbeddingMethod embeddingMethod = embeddingMethodOption(args);
 
             // La cle (0, 0) est neutre ici : VideoProcessor la remplace par la cle embarquee.
-            VideoProcessor.processVideo(input, output, mode, new ScrambleKey(0, 0), false, true, 0, embeddingMethod, null,
+            VideoProcessor.processVideo(input, output, mode, new ScrambleKey(0, 0), false, true, 0, null, embeddingMethod, null,
                     usedKey -> {
                         // Evite d'imprimer la meme cle pour chaque frame.
                         if (!usedKey.equals(lastPrintedKey[0])) {
@@ -93,28 +96,46 @@ public final class CommandLineRunner {
                         }
                     });
             System.out.println("Dechiffrement termine : " + output);
+            System.out.println("Temps : " + formatSeconds(secondsSince(start)) + " s");
             return 0;
         }
 
+        Path keySchedulePath = pathOption(args, "--keys-file");
+        boolean useKeySchedule = mode == Mode.DECRYPT && keySchedulePath != null;
+
         // Les modes classiques ont besoin de : commande, entree, sortie, r, s.
-        if (args.length < 5) {
+        if (!useKeySchedule && args.length < 5) {
             printUsage();
             return 2;
         }
 
         Path input = Path.of(args[1]);
         Path output = Path.of(args[2]);
-        ScrambleKey key = readKeyArgument(args, 3);
+        ScrambleKey key = useKeySchedule ? new ScrambleKey(0, 0) : readKeyArgument(args, 3);
         boolean embedKey = mode == Mode.ENCRYPT && hasFlag(args, "--embed-key");
         int keyChangeInterval = intOption(args, "--change-key-every", 0);
         EmbeddingMethod embeddingMethod = embeddingMethodOption(args);
+        List<KeyIO.KeyFrame> keySchedule = useKeySchedule ? KeyIO.readKeyFrames(keySchedulePath) : null;
 
         // Pas de preview en CLI : les deux callbacks d'affichage restent a null.
-        VideoProcessor.processVideo(input, output, mode, key, embedKey, false, keyChangeInterval, embeddingMethod, null, null);
+        long start = System.nanoTime();
+        List<KeyIO.KeyFrame> usedKeys = VideoProcessor.processVideo(input, output, mode, key, embedKey, false,
+                keyChangeInterval, keySchedule, embeddingMethod, null, null);
         System.out.println((mode == Mode.ENCRYPT ? "Chiffrement" : "Dechiffrement") + " termine : " + output);
-        System.out.println("Cle utilisee : " + key);
+        System.out.println("Temps : " + formatSeconds(secondsSince(start)) + " s");
+        if (!useKeySchedule) {
+            System.out.println("Cle utilisee : " + key);
+        }
         if (keyChangeInterval > 0) {
             System.out.println("Changement de cle toutes les " + keyChangeInterval + " frames.");
+        }
+        if (mode == Mode.ENCRYPT && keyChangeInterval > 0) {
+            Path keysOutput = keySchedulePath == null ? defaultKeysPath(output) : keySchedulePath;
+            KeyIO.writeKeyFrames(keysOutput, usedKeys);
+            System.out.println("Liste des cles enregistree : " + keysOutput);
+        }
+        if (useKeySchedule) {
+            System.out.println("Liste des cles chargee : " + keySchedulePath);
         }
         if (embedKey) {
             System.out.println("Cle embarquee dans chaque image.");
@@ -140,7 +161,7 @@ public final class CommandLineRunner {
         try {
             long start = System.nanoTime();
             KeyCracker.CrackResult result = KeyCracker.crack(scrambled);
-            long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
+            double elapsedSeconds = secondsSince(start);
 
             try {
                 if (output != null) {
@@ -152,7 +173,7 @@ public final class CommandLineRunner {
                 }
                 System.out.println("Cle trouvee : " + result.key());
                 System.out.println("Score : " + result.score());
-                System.out.println("Temps : " + elapsedMillis + " ms");
+                System.out.println("Temps : " + formatSeconds(elapsedSeconds) + " s");
                 if (output != null) {
                     System.out.println("Image decryptee : " + output);
                 }
@@ -302,6 +323,43 @@ public final class CommandLineRunner {
 
         // Option absente : on garde la valeur par defaut fournie par l'appelant.
         return defaultValue;
+    }
+
+    /**
+     * Lit une option chemin dans les arguments, ou retourne null si elle est absente.
+     */
+    private static Path pathOption(String[] args, String option) {
+        for (int i = 0; i < args.length; i++) {
+            if (option.equalsIgnoreCase(args[i])) {
+                if (i + 1 >= args.length) {
+                    throw new IllegalArgumentException("Valeur manquante pour " + option);
+                }
+                return Path.of(args[i + 1]);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Retourne le fichier keys.txt cree automatiquement a cote de la sortie video.
+     */
+    private static Path defaultKeysPath(Path output) {
+        Path parent = output.toAbsolutePath().getParent();
+        return (parent == null ? Path.of(".") : parent).resolve("keys.txt");
+    }
+
+    /**
+     * Calcule une duree en secondes depuis un temps de depart nanoTime.
+     */
+    private static double secondsSince(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000_000.0;
+    }
+
+    /**
+     * Formate une duree en secondes pour le terminal.
+     */
+    private static String formatSeconds(double seconds) {
+        return String.format("%.3f", seconds);
     }
 
     /**

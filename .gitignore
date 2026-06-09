@@ -1,4 +1,12 @@
 # Project exclude paths
 /target/
-5sr_ori.mp4
 .idea
+*.mp4
+*.m4v
+*.avi
+*.mov
+*.mkv
+*.png
+keys.txt
+keylist_test_keys.txt
+ffmpeg*/

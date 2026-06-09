@@ -16,6 +16,7 @@ import org.opencv.videoio.Videoio;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -108,21 +109,24 @@ public final class VideoProcessor {
      * @param embedKey option pour ecrire la cle dans chaque frame chiffree
      * @param readEmbeddedKey option pour lire la cle embarquee dans chaque frame
      * @param keyChangeInterval nombre de frames entre deux changements de cle
+     * @param keySchedule liste de cles a utiliser selon la frame, ou null
      * @param embeddingMethod methode pour ecrire ou lire la cle embarquee
      * @param onFrame utilise par l'IHM pour afficher l'apercu
      * @param onKey callback appele quand une cle est utilisee
+     * @return liste des cles utilisees et de leur premiere frame
      * @throws IOException si le dossier de sortie ne peut pas etre cree
      */
-    public static void processVideo(Path input,
-                                    Path output,
-                                    Mode mode,
-                                    ScrambleKey key,
-                                    boolean embedKey,
-                                    boolean readEmbeddedKey,
-                                    int keyChangeInterval,
-                                    EmbeddingMethod embeddingMethod,
-                                    BiConsumer<Mat, Mat> onFrame,
-                                    Consumer<ScrambleKey> onKey) throws IOException {
+    public static List<KeyIO.KeyFrame> processVideo(Path input,
+                                                    Path output,
+                                                    Mode mode,
+                                                    ScrambleKey key,
+                                                    boolean embedKey,
+                                                    boolean readEmbeddedKey,
+                                                    int keyChangeInterval,
+                                                    List<KeyIO.KeyFrame> keySchedule,
+                                                    EmbeddingMethod embeddingMethod,
+                                                    BiConsumer<Mat, Mat> onFrame,
+                                                    Consumer<ScrambleKey> onKey) throws IOException {
         // On valide les chemins avant de creer les objets OpenCV, pour avoir des erreurs claires.
         ensureReadableFile(input);
         ensureParentDirectory(output);
@@ -156,6 +160,9 @@ public final class VideoProcessor {
 
         Mat frame = new Mat();
         long frameIndex = 0;
+        int scheduleIndex = 0;
+        ScrambleKey lastUsedKey = null;
+        List<KeyIO.KeyFrame> usedKeys = new ArrayList<>();
         try {
             while (capture.read(frame)) {
                 if (frame.empty()) {
@@ -163,10 +170,24 @@ public final class VideoProcessor {
                 }
 
                 // La cle peut rester fixe ou changer selon l'intervalle choisi.
-                ScrambleKey scheduledKey = scheduledKey(key, frameIndex, keyChangeInterval);
+                ScrambleKey scheduledKey;
+                if (keySchedule != null && !keySchedule.isEmpty()) {
+                    // Avance dans la liste des cles quand la frame atteint le prochain seuil.
+                    while (scheduleIndex + 1 < keySchedule.size()
+                            && keySchedule.get(scheduleIndex + 1).frameIndex() <= frameIndex) {
+                        scheduleIndex++;
+                    }
+                    scheduledKey = keySchedule.get(scheduleIndex).key();
+                } else {
+                    scheduledKey = scheduledKey(key, frameIndex, keyChangeInterval);
+                }
 
                 // En mode embedded, la cle de dechiffrement vient directement de la frame courante.
                 ScrambleKey frameKey = mode == Mode.DECRYPT && readEmbeddedKey ? KeyEmbedder.extract(frame, embeddingMethod) : scheduledKey;
+                if (!frameKey.equals(lastUsedKey)) {
+                    usedKeys.add(new KeyIO.KeyFrame(frameIndex, frameKey));
+                    lastUsedKey = frameKey;
+                }
                 if (onKey != null) {
                     onKey.accept(frameKey);
                 }
@@ -200,6 +221,7 @@ public final class VideoProcessor {
             writer.release();
             capture.release();
         }
+        return usedKeys;
     }
 
     /**

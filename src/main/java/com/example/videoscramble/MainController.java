@@ -39,6 +39,7 @@ public class MainController {
     @FXML private ComboBox<EmbeddingMethod> embeddingMethodCombo;
     @FXML private CheckBox changeKeyCheckBox;
     @FXML private TextField keyChangeIntervalField;
+    @FXML private TextField keyScheduleField;
     @FXML private Button encryptButton;
     @FXML private Button decryptButton;
     @FXML private Button crackImageButton;
@@ -116,6 +117,20 @@ public class MainController {
     }
 
     /**
+     * Ouvre un selecteur pour choisir le fichier keys.txt utilise au dechiffrement.
+     */
+    @FXML
+    private void browseKeySchedule() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Charger la liste des clés");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Texte", "*.txt"));
+        java.io.File file = chooser.showOpenDialog(window());
+        if (file != null) {
+            keyScheduleField.setText(file.getAbsolutePath());
+        }
+    }
+
+    /**
      * Lance le chiffrement de la video.
      */
     @FXML
@@ -153,14 +168,14 @@ public class MainController {
                 updateMessage("Brute force en cours...");
                 long start = System.nanoTime();
                 KeyCracker.CrackResult result = KeyCracker.crack(scrambled);
-                long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
+                double elapsedSeconds = secondsSince(start);
 
                 // Affiche l'image reconstruite et les informations utiles pour la demonstration.
                 Platform.runLater(() -> {
                     resultView.setImage(MatFxUtils.matToImage(result.image()));
                     keyLabel.setText("Clé trouvée : " + result.key()
                             + " | score = " + String.format("%.6f", result.score())
-                            + " | temps = " + elapsedMillis + " ms");
+                            + " | temps = " + formatSeconds(elapsedSeconds) + " s");
                 });
 
                 if (output != null) {
@@ -175,7 +190,7 @@ public class MainController {
                 // Liberation manuelle des Mat OpenCV creees pendant le traitement.
                 scrambled.release();
                 result.image().release();
-                updateMessage("Cassage terminé en " + elapsedMillis + " ms.");
+                updateMessage("Cassage terminé en " + formatSeconds(elapsedSeconds) + " s.");
                 return null;
             }
         };
@@ -252,23 +267,31 @@ public class MainController {
         Path output = requiredPath(outputField.getText(), "Choisis la vidéo de sortie.");
 
         // Si on lit une cle embarquee, la cle saisie n'est qu'une valeur neutre non utilisee.
-        ScrambleKey key = readEmbeddedKeyCheckBox.isSelected() && mode == Mode.DECRYPT ? new ScrambleKey(0, 0) : readKey();
+        boolean useEmbeddedKey = readEmbeddedKeyCheckBox.isSelected() && mode == Mode.DECRYPT;
+        boolean useKeySchedule = mode == Mode.DECRYPT && changeKeyCheckBox.isSelected() && !useEmbeddedKey;
+        ScrambleKey key = useEmbeddedKey || useKeySchedule ? new ScrambleKey(0, 0) : readKey();
         int keyChangeInterval = changeKeyCheckBox.isSelected() ? readKeyChangeInterval() : 0;
+        Path keySchedulePath = useKeySchedule
+                ? requiredPath(keyScheduleField.getText(), "Choisis le fichier keys.txt utilise au chiffrement.")
+                : null;
         disableActions(true);
 
         // Traitement potentiellement long : execution en arriere-plan.
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
+                long start = System.nanoTime();
                 updateMessage((mode == Mode.ENCRYPT ? "Chiffrement" : "Déchiffrement") + " en cours...");
                 List<Integer> blocks = VideoProcessor.probeBlocks(input);
                 Platform.runLater(() -> blocksLabel.setText("Blocs : " + blocks));
+                List<KeyIO.KeyFrame> keySchedule = keySchedulePath == null ? null : KeyIO.readKeyFrames(keySchedulePath);
 
                 // VideoProcessor gere la boucle frame par frame ; le controleur fournit les options IHM.
-                VideoProcessor.processVideo(input, output, mode, key,
+                List<KeyIO.KeyFrame> usedKeys = VideoProcessor.processVideo(input, output, mode, key,
                         embedKeyCheckBox.isSelected() && mode == Mode.ENCRYPT,
                         readEmbeddedKeyCheckBox.isSelected() && mode == Mode.DECRYPT,
                         keyChangeInterval,
+                        keySchedule,
                         embeddingMethodCombo.getValue(),
                         showPreviewCheckBox.isSelected() ? (source, result) -> {
                     // Les Mat sont clonees pour survivre jusqu'a l'execution du runLater.
@@ -299,7 +322,18 @@ public class MainController {
                         // Affiche la cle courante, utile quand elle change ou quand elle est embarquee.
                         usedKey -> Platform.runLater(() -> keyLabel.setText("Clé utilisée : " + usedKey)));
 
-                updateMessage((mode == Mode.ENCRYPT ? "Chiffrement" : "Déchiffrement") + " terminé.");
+                double elapsedSeconds = secondsSince(start);
+
+                if (mode == Mode.ENCRYPT && keyChangeInterval > 0) {
+                    Path keysPath = defaultKeysPath(output);
+                    KeyIO.writeKeyFrames(keysPath, usedKeys);
+                    Platform.runLater(() -> keyScheduleField.setText(keysPath.toString()));
+                    updateMessage("Chiffrement terminé en " + formatSeconds(elapsedSeconds)
+                            + " s. Liste des clés enregistrée : " + keysPath);
+                } else {
+                    updateMessage((mode == Mode.ENCRYPT ? "Chiffrement" : "Déchiffrement")
+                            + " terminé en " + formatSeconds(elapsedSeconds) + " s.");
+                }
                 return null;
             }
         };
@@ -364,6 +398,28 @@ public class MainController {
             throw new IllegalArgumentException("L'intervalle de changement doit être positif.");
         }
         return interval;
+    }
+
+    /**
+     * Calcule une duree en secondes depuis un temps de depart nanoTime.
+     */
+    private double secondsSince(long startNanos) {
+        return (System.nanoTime() - startNanos) / 1_000_000_000.0;
+    }
+
+    /**
+     * Formate une duree en secondes pour l'affichage.
+     */
+    private String formatSeconds(double seconds) {
+        return String.format("%.3f", seconds);
+    }
+
+    /**
+     * Retourne le fichier keys.txt cree automatiquement a cote de la video chiffree.
+     */
+    private Path defaultKeysPath(Path output) {
+        Path parent = output.toAbsolutePath().getParent();
+        return (parent == null ? Path.of(".") : parent).resolve("keys.txt");
     }
 
     /**

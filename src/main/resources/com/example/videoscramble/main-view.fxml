@@ -62,6 +62,8 @@
                     <Label text="Déchiffrement" style="-fx-font-weight: bold;"/>
                     <Button fx:id="decryptButton" text="Déchiffrer la vidéo" onAction="#decrypt"/>
                     <CheckBox fx:id="readEmbeddedKeyCheckBox" text="Lire clé embarquée"/>
+                    <TextField fx:id="keyScheduleField" prefWidth="220" promptText="keys.txt si plusieurs clés"/>
+                    <Button text="Charger keys.txt" onAction="#browseKeySchedule"/>
                     <Label text="Méthode"/>
                     <ComboBox fx:id="embeddingMethodCombo" prefWidth="130"/>
                 </HBox>
